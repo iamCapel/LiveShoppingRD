@@ -109,10 +109,10 @@ const LiveShoppingApp = () => {
   const [interestedPosts, setInterestedPosts] = useState(new Set());
   
   // Estados para publicar piezas
-  const [promoteImages, setPromoteImages] = useState([]);
+  const [promoteImages, setPromoteImages] = useState([]); // Cada imagen tendrá: { id, url, source, description, minPrice }
   const [promoteLiveDate, setPromoteLiveDate] = useState('');
-  const [promoteDescription, setPromoteDescription] = useState('');
-  const [promoteMinPrice, setPromoteMinPrice] = useState('');
+  const [editingPiece, setEditingPiece] = useState(null); // Pieza que se está editando
+  const [showPieceEditor, setShowPieceEditor] = useState(false);
   
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -320,11 +320,17 @@ const LiveShoppingApp = () => {
     files.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPromoteImages(prev => [...prev, {
+        const newPiece = {
           id: Date.now() + Math.random(),
           url: reader.result,
-          source
-        }]);
+          source,
+          description: '',
+          minPrice: ''
+        };
+        setPromoteImages(prev => [...prev, newPiece]);
+        // Abrir editor para esta pieza
+        setEditingPiece(newPiece);
+        setShowPieceEditor(true);
       };
       reader.readAsDataURL(file);
     });
@@ -332,6 +338,30 @@ const LiveShoppingApp = () => {
 
   const removePromoteImage = (imageId) => {
     setPromoteImages(prev => prev.filter(img => img.id !== imageId));
+  };
+
+  const editPiece = (piece) => {
+    setEditingPiece(piece);
+    setShowPieceEditor(true);
+  };
+
+  const savePieceDetails = (pieceId, description, minPrice) => {
+    setPromoteImages(prev => prev.map(img => 
+      img.id === pieceId 
+        ? { ...img, description, minPrice }
+        : img
+    ));
+    setShowPieceEditor(false);
+    setEditingPiece(null);
+  };
+
+  const cancelPieceEdit = () => {
+    // Si la pieza no tiene descripción ni precio, la eliminamos
+    if (editingPiece && !editingPiece.description && !editingPiece.minPrice) {
+      removePromoteImage(editingPiece.id);
+    }
+    setShowPieceEditor(false);
+    setEditingPiece(null);
   };
 
   const getMinDateTime = () => {
@@ -351,16 +381,16 @@ const LiveShoppingApp = () => {
       alert('Agrega al menos una imagen');
       return;
     }
+    
+    // Validar que todas las piezas tengan descripción y precio
+    const incompletePieces = promoteImages.filter(img => !img.description.trim() || !img.minPrice || parseFloat(img.minPrice) <= 0);
+    if (incompletePieces.length > 0) {
+      alert('Todas las piezas deben tener descripción y precio mínimo');
+      return;
+    }
+    
     if (!promoteLiveDate) {
       alert('Selecciona la fecha y hora del live');
-      return;
-    }
-    if (!promoteDescription.trim()) {
-      alert('Agrega una descripción');
-      return;
-    }
-    if (!promoteMinPrice || parseFloat(promoteMinPrice) <= 0) {
-      alert('Ingresa un precio mínimo válido');
       return;
     }
 
@@ -374,8 +404,12 @@ const LiveShoppingApp = () => {
       location: 'Santo Domingo',
       avatar: currentUser?.username[0].toUpperCase() || '👤',
       images: promoteImages.map(img => img.url),
-      description: promoteDescription,
-      minPrice: parseFloat(promoteMinPrice),
+      pieces: promoteImages.map(img => ({
+        url: img.url,
+        description: img.description,
+        minPrice: parseFloat(img.minPrice)
+      })),
+      description: `${promoteImages.length} pieza${promoteImages.length > 1 ? 's' : ''} disponible${promoteImages.length > 1 ? 's' : ''} - Precios desde RD$${Math.min(...promoteImages.map(img => parseFloat(img.minPrice)))}`,
       interested: 0,
       countdown: countdown,
       currentSlide: 0,
@@ -387,8 +421,6 @@ const LiveShoppingApp = () => {
     // Limpiar formulario
     setPromoteImages([]);
     setPromoteLiveDate('');
-    setPromoteDescription('');
-    setPromoteMinPrice('');
     
     // Volver al home
     setActiveTab('home');
@@ -1162,33 +1194,150 @@ const LiveShoppingApp = () => {
             </div>
           </div>
 
+          {/* Modal Editor de Pieza */}
+          {showPieceEditor && editingPiece && (
+            <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+              <div className="bg-gray-900 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-700">
+                <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-4 flex items-center justify-between">
+                  <h3 className="text-white font-bold text-lg">Detalles de la Pieza</h3>
+                  <button
+                    onClick={cancelPieceEdit}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                
+                <div className="p-4 space-y-4">
+                  {/* Imagen */}
+                  <div className="aspect-square rounded-lg overflow-hidden bg-gray-800">
+                    <img 
+                      src={editingPiece.url} 
+                      alt="Pieza" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  {/* Descripción */}
+                  <div className="space-y-2">
+                    <label className="text-white font-semibold text-sm flex items-center gap-2">
+                      <Send className="w-4 h-4" />
+                      Descripción de esta pieza
+                    </label>
+                    <textarea
+                      value={editingPiece.description}
+                      onChange={(e) => setEditingPiece({ ...editingPiece, description: e.target.value })}
+                      placeholder="Ej: Vestido floral talla M, 100% algodón 🌸"
+                      className="w-full bg-gray-800 text-white border border-gray-600 rounded-xl p-3 min-h-[100px] focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none text-sm"
+                      maxLength={200}
+                    />
+                    <p className="text-xs text-gray-400 text-right">
+                      {editingPiece.description.length}/200
+                    </p>
+                  </div>
+
+                  {/* Precio Mínimo */}
+                  <div className="space-y-2">
+                    <label className="text-white font-semibold text-sm flex items-center gap-2">
+                      <DollarSign className="w-4 h-4" />
+                      Precio Mínimo
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">
+                        RD$
+                      </span>
+                      <input
+                        type="number"
+                        value={editingPiece.minPrice}
+                        onChange={(e) => setEditingPiece({ ...editingPiece, minPrice: e.target.value })}
+                        placeholder="0.00"
+                        min="0"
+                        step="50"
+                        className="w-full bg-gray-800 text-white border border-gray-600 rounded-xl p-3 pl-14 font-semibold focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Botones */}
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={cancelPieceEdit}
+                      className="flex-1 bg-gray-700 text-white py-3 rounded-xl font-semibold hover:bg-gray-600 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={() => savePieceDetails(editingPiece.id, editingPiece.description, editingPiece.minPrice)}
+                      disabled={!editingPiece.description.trim() || !editingPiece.minPrice || parseFloat(editingPiece.minPrice) <= 0}
+                      className="flex-1 bg-gradient-to-r from-pink-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-pink-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Guardar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Formulario */}
           <div className="p-4 space-y-6">
             {/* Agregar Imágenes */}
             <div className="space-y-3">
               <h2 className="text-white font-semibold flex items-center gap-2">
-                <Camera className="w-5 h-5" />
-                Imágenes del Producto
+                <Image className="w-5 h-5" />
+                Piezas a Promocionar
               </h2>
               
-              {/* Vista previa de imágenes */}
+              {/* Vista previa de imágenes con detalles */}
               {promoteImages.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  {promoteImages.map((img) => (
-                    <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden bg-gray-800">
-                      <img 
-                        src={img.url} 
-                        alt="Preview" 
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        onClick={() => removePromoteImage(img.id)}
-                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                      <div className="absolute bottom-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">
-                        {img.source === 'camera' ? '📷' : '🖼️'}
+                <div className="space-y-3 mb-3">
+                  {promoteImages.map((piece, index) => (
+                    <div key={piece.id} className="bg-gray-800 rounded-xl p-3 border border-gray-700">
+                      <div className="flex gap-3">
+                        {/* Imagen */}
+                        <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-900">
+                          <img 
+                            src={piece.url} 
+                            alt={`Pieza ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute bottom-1 left-1 text-[10px] bg-black/70 text-white px-1.5 py-0.5 rounded">
+                            {piece.source === 'camera' ? '📷' : '🖼️'}
+                          </div>
+                        </div>
+
+                        {/* Detalles */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h3 className="text-white font-semibold text-sm">Pieza #{index + 1}</h3>
+                            <button
+                              onClick={() => removePromoteImage(piece.id)}
+                              className="flex-shrink-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          {piece.description && piece.minPrice ? (
+                            <div className="space-y-1">
+                              <p className="text-gray-300 text-xs line-clamp-2">{piece.description}</p>
+                              <p className="text-pink-500 font-bold text-sm">RD${piece.minPrice}</p>
+                              <button
+                                onClick={() => editPiece(piece)}
+                                className="text-purple-400 text-xs hover:text-purple-300 transition-colors"
+                              >
+                                ✏️ Editar detalles
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => editPiece(piece)}
+                              className="text-yellow-400 text-xs bg-yellow-400/10 px-3 py-2 rounded-lg hover:bg-yellow-400/20 transition-colors"
+                            >
+                              ⚠️ Agregar descripción y precio
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1230,25 +1379,7 @@ const LiveShoppingApp = () => {
                 </button>
               </div>
               <p className="text-xs text-gray-400 text-center">
-                {promoteImages.length}/10 imágenes
-              </p>
-            </div>
-
-            {/* Descripción */}
-            <div className="space-y-2">
-              <label className="text-white font-semibold flex items-center gap-2">
-                <Send className="w-5 h-5" />
-                Descripción del Producto
-              </label>
-              <textarea
-                value={promoteDescription}
-                onChange={(e) => setPromoteDescription(e.target.value)}
-                placeholder="Describe tu producto... Ej: Nueva colección primavera 2025, vestidos importados, tallas S-XL 🌸"
-                className="w-full bg-gray-900 text-white border border-gray-700 rounded-xl p-4 min-h-[120px] focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none"
-                maxLength={500}
-              />
-              <p className="text-xs text-gray-400 text-right">
-                {promoteDescription.length}/500 caracteres
+                {promoteImages.length}/10 piezas agregadas
               </p>
             </div>
 
@@ -1279,47 +1410,22 @@ const LiveShoppingApp = () => {
               )}
             </div>
 
-            {/* Precio Mínimo */}
-            <div className="space-y-2">
-              <label className="text-white font-semibold flex items-center gap-2">
-                <DollarSign className="w-5 h-5" />
-                Precio Mínimo de Puja
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-semibold">
-                  RD$
-                </span>
-                <input
-                  type="number"
-                  value={promoteMinPrice}
-                  onChange={(e) => setPromoteMinPrice(e.target.value)}
-                  placeholder="0.00"
-                  min="0"
-                  step="50"
-                  className="w-full bg-gray-900 text-white border border-gray-700 rounded-xl p-4 pl-16 text-lg font-semibold focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                />
-              </div>
-              <p className="text-xs text-gray-400">
-                Este será el precio inicial en la subasta durante el live
-              </p>
-            </div>
-
             {/* Botón de Publicar */}
             <button
               onClick={publishPromotePost}
-              disabled={promoteImages.length === 0 || !promoteLiveDate || !promoteDescription.trim() || !promoteMinPrice}
+              disabled={promoteImages.length === 0 || !promoteLiveDate || promoteImages.some(img => !img.description || !img.minPrice)}
               className="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:from-pink-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <PlusCircle className="w-6 h-6" />
-              Publicar Promoción
+              Publicar {promoteImages.length} {promoteImages.length === 1 ? 'Pieza' : 'Piezas'}
             </button>
 
             {/* Vista previa */}
-            {promoteImages.length > 0 && promoteLiveDate && promoteDescription && (
+            {promoteImages.length > 0 && promoteLiveDate && promoteImages.every(img => img.description && img.minPrice) && (
               <div className="mt-6 space-y-2">
                 <h3 className="text-white font-semibold text-sm">Vista Previa:</h3>
                 <div className="bg-gray-900 rounded-xl p-4 border border-gray-700">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-3">
                     <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                       {currentUser?.username[0].toUpperCase()}
                     </div>
@@ -1328,16 +1434,33 @@ const LiveShoppingApp = () => {
                       <p className="text-gray-400 text-xs">Santo Domingo</p>
                     </div>
                   </div>
-                  <img 
-                    src={promoteImages[0].url} 
-                    alt="Preview" 
-                    className="w-full aspect-square object-cover rounded-lg mb-2"
-                  />
-                  <p className="text-white text-sm mb-2">{promoteDescription}</p>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-pink-500 font-semibold">Precio mínimo: RD${promoteMinPrice}</span>
+                  
+                  {/* Carrusel de imágenes preview */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {promoteImages.slice(0, 4).map((piece, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden">
+                        <img 
+                          src={piece.url} 
+                          alt={`Pieza ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        {idx === 3 && promoteImages.length > 4 && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <span className="text-white font-bold text-lg">+{promoteImages.length - 4}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="text-white text-sm mb-2">
+                    {promoteImages.length} pieza{promoteImages.length > 1 ? 's' : ''} disponible{promoteImages.length > 1 ? 's' : ''} - Desde RD${Math.min(...promoteImages.map(p => parseFloat(p.minPrice)))}
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-gray-700">
+                    <span className="text-pink-500 font-semibold">💰 {promoteImages.length} piezas en subasta</span>
                     <span className="text-gray-400">
-                      Live: {new Date(promoteLiveDate).toLocaleString('es-DO', { 
+                      🔴 {new Date(promoteLiveDate).toLocaleString('es-DO', { 
                         day: '2-digit', 
                         month: 'short', 
                         hour: '2-digit', 
@@ -1686,33 +1809,150 @@ const LiveShoppingApp = () => {
             </div>
           </div>
 
+          {/* Modal Editor de Pieza */}
+          {showPieceEditor && editingPiece && (
+            <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
+                  <h3 className="text-gray-800 font-bold text-lg">Detalles de la Pieza</h3>
+                  <button
+                    onClick={cancelPieceEdit}
+                    className="text-gray-500 hover:text-gray-800"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                
+                <div className="p-4 space-y-4">
+                  {/* Imagen */}
+                  <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200">
+                    <img 
+                      src={editingPiece.url} 
+                      alt="Pieza" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  {/* Descripción */}
+                  <div className="space-y-2">
+                    <label className="text-gray-800 font-semibold text-sm flex items-center gap-2">
+                      <Send className="w-4 h-4 text-purple-500" />
+                      Descripción de esta pieza
+                    </label>
+                    <textarea
+                      value={editingPiece.description}
+                      onChange={(e) => setEditingPiece({ ...editingPiece, description: e.target.value })}
+                      placeholder="Ej: Vestido floral talla M, 100% algodón 🌸"
+                      className="w-full bg-white border-2 border-gray-200 text-gray-800 rounded-xl p-3 min-h-[100px] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-sm"
+                      maxLength={200}
+                    />
+                    <p className="text-xs text-gray-500 text-right">
+                      {editingPiece.description.length}/200
+                    </p>
+                  </div>
+
+                  {/* Precio Mínimo */}
+                  <div className="space-y-2">
+                    <label className="text-gray-800 font-semibold text-sm flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-purple-500" />
+                      Precio Mínimo
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">
+                        RD$
+                      </span>
+                      <input
+                        type="number"
+                        value={editingPiece.minPrice}
+                        onChange={(e) => setEditingPiece({ ...editingPiece, minPrice: e.target.value })}
+                        placeholder="0.00"
+                        min="0"
+                        step="50"
+                        className="w-full bg-white border-2 border-gray-200 text-gray-800 rounded-xl p-3 pl-14 font-semibold focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Botones */}
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={cancelPieceEdit}
+                      className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={() => savePieceDetails(editingPiece.id, editingPiece.description, editingPiece.minPrice)}
+                      disabled={!editingPiece.description.trim() || !editingPiece.minPrice || parseFloat(editingPiece.minPrice) <= 0}
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Guardar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Formulario */}
           <div className="p-4 space-y-6">
             {/* Agregar Imágenes */}
             <div className="space-y-3">
               <h2 className="text-gray-800 font-semibold flex items-center gap-2">
-                <Camera className="w-5 h-5 text-purple-500" />
-                Imágenes del Producto
+                <Image className="w-5 h-5 text-purple-500" />
+                Piezas a Promocionar
               </h2>
               
-              {/* Vista previa de imágenes */}
+              {/* Vista previa de imágenes con detalles */}
               {promoteImages.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  {promoteImages.map((img) => (
-                    <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200">
-                      <img 
-                        src={img.url} 
-                        alt="Preview" 
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        onClick={() => removePromoteImage(img.id)}
-                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-red-600 transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                      <div className="absolute bottom-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">
-                        {img.source === 'camera' ? '📷' : '🖼️'}
+                <div className="space-y-3 mb-3">
+                  {promoteImages.map((piece, index) => (
+                    <div key={piece.id} className="bg-white rounded-xl p-3 border-2 border-gray-200 shadow-sm">
+                      <div className="flex gap-3">
+                        {/* Imagen */}
+                        <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-50 border border-gray-200">
+                          <img 
+                            src={piece.url} 
+                            alt={`Pieza ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute bottom-1 left-1 text-[10px] bg-black/70 text-white px-1.5 py-0.5 rounded">
+                            {piece.source === 'camera' ? '📷' : '🖼️'}
+                          </div>
+                        </div>
+
+                        {/* Detalles */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h3 className="text-gray-800 font-semibold text-sm">Pieza #{index + 1}</h3>
+                            <button
+                              onClick={() => removePromoteImage(piece.id)}
+                              className="flex-shrink-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          {piece.description && piece.minPrice ? (
+                            <div className="space-y-1">
+                              <p className="text-gray-600 text-xs line-clamp-2">{piece.description}</p>
+                              <p className="text-purple-600 font-bold text-sm">RD${piece.minPrice}</p>
+                              <button
+                                onClick={() => editPiece(piece)}
+                                className="text-purple-500 text-xs hover:text-purple-600 transition-colors"
+                              >
+                                ✏️ Editar detalles
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => editPiece(piece)}
+                              className="text-yellow-700 text-xs bg-yellow-100 px-3 py-2 rounded-lg hover:bg-yellow-200 transition-colors font-medium"
+                            >
+                              ⚠️ Agregar descripción y precio
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1754,25 +1994,7 @@ const LiveShoppingApp = () => {
                 </button>
               </div>
               <p className="text-xs text-gray-500 text-center">
-                {promoteImages.length}/10 imágenes agregadas
-              </p>
-            </div>
-
-            {/* Descripción */}
-            <div className="space-y-2">
-              <label className="text-gray-800 font-semibold flex items-center gap-2">
-                <Send className="w-5 h-5 text-purple-500" />
-                Descripción del Producto
-              </label>
-              <textarea
-                value={promoteDescription}
-                onChange={(e) => setPromoteDescription(e.target.value)}
-                placeholder="Describe tu producto... Ej: Nueva colección primavera 2025, vestidos importados, tallas S-XL 🌸"
-                className="w-full bg-white border-2 border-gray-200 text-gray-800 rounded-xl p-4 min-h-[120px] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
-                maxLength={500}
-              />
-              <p className="text-xs text-gray-500 text-right">
-                {promoteDescription.length}/500 caracteres
+                {promoteImages.length}/10 piezas agregadas
               </p>
             </div>
 
@@ -1803,47 +2025,22 @@ const LiveShoppingApp = () => {
               )}
             </div>
 
-            {/* Precio Mínimo */}
-            <div className="space-y-2">
-              <label className="text-gray-800 font-semibold flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-purple-500" />
-                Precio Mínimo de Puja
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg font-semibold">
-                  RD$
-                </span>
-                <input
-                  type="number"
-                  value={promoteMinPrice}
-                  onChange={(e) => setPromoteMinPrice(e.target.value)}
-                  placeholder="0.00"
-                  min="0"
-                  step="50"
-                  className="w-full bg-white border-2 border-gray-200 text-gray-800 rounded-xl p-4 pl-16 text-lg font-semibold focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                />
-              </div>
-              <p className="text-xs text-gray-500">
-                💰 Este será el precio inicial en la subasta durante el live
-              </p>
-            </div>
-
             {/* Botón de Publicar */}
             <button
               onClick={publishPromotePost}
-              disabled={promoteImages.length === 0 || !promoteLiveDate || !promoteDescription.trim() || !promoteMinPrice}
+              disabled={promoteImages.length === 0 || !promoteLiveDate || promoteImages.some(img => !img.description || !img.minPrice)}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <PlusCircle className="w-6 h-6" />
-              Publicar Promoción
+              Publicar {promoteImages.length} {promoteImages.length === 1 ? 'Pieza' : 'Piezas'}
             </button>
 
             {/* Vista previa */}
-            {promoteImages.length > 0 && promoteLiveDate && promoteDescription && (
+            {promoteImages.length > 0 && promoteLiveDate && promoteImages.every(img => img.description && img.minPrice) && (
               <div className="mt-6 space-y-2">
                 <h3 className="text-gray-800 font-semibold text-sm">Vista Previa:</h3>
                 <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-3">
                     <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                       {currentUser?.username[0].toUpperCase()}
                     </div>
@@ -1852,14 +2049,31 @@ const LiveShoppingApp = () => {
                       <p className="text-gray-500 text-xs">Santo Domingo</p>
                     </div>
                   </div>
-                  <img 
-                    src={promoteImages[0].url} 
-                    alt="Preview" 
-                    className="w-full aspect-square object-cover rounded-lg mb-2 border border-gray-200"
-                  />
-                  <p className="text-gray-700 text-sm mb-2">{promoteDescription}</p>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-purple-600 font-semibold">💵 Precio mínimo: RD${promoteMinPrice}</span>
+                  
+                  {/* Carrusel de imágenes preview */}
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {promoteImages.slice(0, 4).map((piece, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200">
+                        <img 
+                          src={piece.url} 
+                          alt={`Pieza ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        {idx === 3 && promoteImages.length > 4 && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <span className="text-white font-bold text-lg">+{promoteImages.length - 4}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="text-gray-700 text-sm mb-2">
+                    {promoteImages.length} pieza{promoteImages.length > 1 ? 's' : ''} disponible{promoteImages.length > 1 ? 's' : ''} - Desde RD${Math.min(...promoteImages.map(p => parseFloat(p.minPrice)))}
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-gray-200">
+                    <span className="text-purple-600 font-semibold">💰 {promoteImages.length} piezas en subasta</span>
                     <span className="text-gray-500">
                       🔴 {new Date(promoteLiveDate).toLocaleString('es-DO', { 
                         day: '2-digit', 
