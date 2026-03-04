@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Auth from './pages/Auth';
-import { Camera, DollarSign, Gavel, Users, Bell, ShoppingCart, Video, Play, Pause, X, Search, UserPlus, UserCheck, Plus, Home, User, Heart, Send, Clock, TrendingUp } from 'lucide-react';
+import { Camera, DollarSign, Gavel, Users, Bell, ShoppingCart, Video, Play, Pause, X, Search, UserPlus, UserCheck, Plus, PlusCircle, Home, User, Heart, Send, Clock, TrendingUp, Image } from 'lucide-react';
 
 const LiveShoppingApp = () => {
   // Estados principales
@@ -108,11 +108,19 @@ const LiveShoppingApp = () => {
   ]);
   const [interestedPosts, setInterestedPosts] = useState(new Set());
   
+  // Estados para publicar piezas
+  const [promoteImages, setPromoteImages] = useState([]);
+  const [promoteLiveDate, setPromoteLiveDate] = useState('');
+  const [promoteDescription, setPromoteDescription] = useState('');
+  const [promoteMinPrice, setPromoteMinPrice] = useState('');
+  
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
   const auctionTimerRef = useRef(null);
   const storyInputRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   // Simular usuarios conectados
   useEffect(() => {
@@ -132,6 +140,25 @@ const LiveShoppingApp = () => {
         countdown: Math.max(0, post.countdown - 1)
       })));
     }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  
+  // Auto-eliminar posts cuando llega la hora del live
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLivePosts(prev => {
+        const now = Date.now();
+        // Filtrar posts cuyo tiempo programado ya pasó
+        return prev.filter(post => {
+          if (post.scheduledTime && now >= post.scheduledTime) {
+            // Mostrar notificación de que el live comenzó
+            console.log(`🔴 El live de ${post.username} ha comenzado!`);
+            return false; // Eliminar el post
+          }
+          return true; // Mantener el post
+        });
+      });
+    }, 5000); // Revisar cada 5 segundos
     return () => clearInterval(interval);
   }, []);
   
@@ -283,6 +310,90 @@ const LiveShoppingApp = () => {
     if (hours < 1) return 'ahora';
     if (hours === 1) return '1h';
     return `${hours}h`;
+  };
+
+  // Funciones para promocionar piezas
+  const handleImageSelect = (e, source) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPromoteImages(prev => [...prev, {
+          id: Date.now() + Math.random(),
+          url: reader.result,
+          source
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removePromoteImage = (imageId) => {
+    setPromoteImages(prev => prev.filter(img => img.id !== imageId));
+  };
+
+  const getMinDateTime = () => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 30); // Mínimo 30 minutos desde ahora
+    return now.toISOString().slice(0, 16);
+  };
+
+  const getMaxDateTime = () => {
+    const max = new Date();
+    max.setHours(max.getHours() + 24);
+    return max.toISOString().slice(0, 16);
+  };
+
+  const publishPromotePost = () => {
+    if (promoteImages.length === 0) {
+      alert('Agrega al menos una imagen');
+      return;
+    }
+    if (!promoteLiveDate) {
+      alert('Selecciona la fecha y hora del live');
+      return;
+    }
+    if (!promoteDescription.trim()) {
+      alert('Agrega una descripción');
+      return;
+    }
+    if (!promoteMinPrice || parseFloat(promoteMinPrice) <= 0) {
+      alert('Ingresa un precio mínimo válido');
+      return;
+    }
+
+    const liveDateTime = new Date(promoteLiveDate);
+    const countdown = Math.floor((liveDateTime - new Date()) / 1000);
+
+    const newPost = {
+      id: Date.now(),
+      username: currentUser?.username || 'usuario',
+      name: currentUser?.name || 'Usuario',
+      location: 'Santo Domingo',
+      avatar: currentUser?.username[0].toUpperCase() || '👤',
+      images: promoteImages.map(img => img.url),
+      description: promoteDescription,
+      minPrice: parseFloat(promoteMinPrice),
+      interested: 0,
+      countdown: countdown,
+      currentSlide: 0,
+      scheduledTime: liveDateTime.getTime()
+    };
+
+    setLivePosts(prev => [newPost, ...prev]);
+    
+    // Limpiar formulario
+    setPromoteImages([]);
+    setPromoteLiveDate('');
+    setPromoteDescription('');
+    setPromoteMinPrice('');
+    
+    // Volver al home
+    setActiveTab('home');
+    
+    alert('¡Publicación creada exitosamente! 🎉');
   };
 
   const startLiveStream = async () => {
@@ -798,7 +909,7 @@ const LiveShoppingApp = () => {
           
           {/* Bottom Navigation */}
           <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/10 safe-bottom">
-            <div className="grid grid-cols-4 gap-1 p-2">
+            <div className="grid grid-cols-5 gap-1 p-2">
               <button
                 onClick={() => setActiveTab('home')}
                 className={`py-3 rounded-xl flex flex-col items-center gap-1 transition-colors ${
@@ -816,6 +927,15 @@ const LiveShoppingApp = () => {
               >
                 <Search className="w-6 h-6" />
                 <span className="text-xs font-medium">Buscar</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('promote')}
+                className={`py-3 rounded-xl flex flex-col items-center gap-1 transition-colors ${
+                  activeTab === 'promote' ? 'text-pink-500' : 'text-gray-500'
+                }`}
+              >
+                <PlusCircle className="w-6 h-6" />
+                <span className="text-xs font-medium">Promocionar</span>
               </button>
               <button
                 onClick={() => setActiveTab('notifications')}
@@ -912,7 +1032,7 @@ const LiveShoppingApp = () => {
           
           {/* Bottom Navigation */}
           <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/10 safe-bottom">
-            <div className="grid grid-cols-4 gap-1 p-2">
+            <div className="grid grid-cols-5 gap-1 p-2">
               <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
                 <Home className="w-6 h-6" />
                 <span className="text-xs font-medium">Inicio</span>
@@ -920,6 +1040,10 @@ const LiveShoppingApp = () => {
               <button onClick={() => setActiveTab('search')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-pink-500">
                 <Search className="w-6 h-6" />
                 <span className="text-xs font-medium">Buscar</span>
+              </button>
+              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
+                <PlusCircle className="w-6 h-6" />
+                <span className="text-xs font-medium">Promocionar</span>
               </button>
               <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
                 <Bell className="w-6 h-6" />
@@ -994,7 +1118,7 @@ const LiveShoppingApp = () => {
           
           {/* Bottom Navigation */}
           <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-bottom">
-            <div className="grid grid-cols-4 gap-1 p-2">
+            <div className="grid grid-cols-5 gap-1 p-2">
               <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
                 <Home className="w-6 h-6" />
                 <span className="text-xs font-medium">Inicio</span>
@@ -1003,11 +1127,249 @@ const LiveShoppingApp = () => {
                 <Search className="w-6 h-6" />
                 <span className="text-xs font-medium">Buscar</span>
               </button>
+              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
+                <PlusCircle className="w-6 h-6" />
+                <span className="text-xs font-medium">Promocionar</span>
+              </button>
               <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
                 <Bell className="w-6 h-6" />
                 <span className="text-xs font-medium">Alertas</span>
               </button>
               <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
+                <User className="w-6 h-6" />
+                <span className="text-xs font-medium">Perfil</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Tab Promote - Promocionar piezas
+    if (activeTab === 'promote') {
+      return (
+        <div className="min-h-screen bg-black pb-20">
+          {/* Header */}
+          <div className="bg-black/80 backdrop-blur-xl border-b border-white/10 sticky top-0 z-10 p-4">
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold text-white">Promocionar Piezas</h1>
+              <button
+                onClick={() => setActiveTab('home')}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+
+          {/* Formulario */}
+          <div className="p-4 space-y-6">
+            {/* Agregar Imágenes */}
+            <div className="space-y-3">
+              <h2 className="text-white font-semibold flex items-center gap-2">
+                <Camera className="w-5 h-5" />
+                Imágenes del Producto
+              </h2>
+              
+              {/* Vista previa de imágenes */}
+              {promoteImages.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {promoteImages.map((img) => (
+                    <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden bg-gray-800">
+                      <img 
+                        src={img.url} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        onClick={() => removePromoteImage(img.id)}
+                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <div className="absolute bottom-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">
+                        {img.source === 'camera' ? '📷' : '🖼️'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Botones para agregar imágenes */}
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => handleImageSelect(e, 'camera')}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg"
+                >
+                  <Camera className="w-5 h-5" />
+                  Cámara
+                </button>
+                
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleImageSelect(e, 'gallery')}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => imageInputRef.current?.click()}
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
+                >
+                  <Plus className="w-5 h-5" />
+                  Galería
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 text-center">
+                {promoteImages.length}/10 imágenes
+              </p>
+            </div>
+
+            {/* Descripción */}
+            <div className="space-y-2">
+              <label className="text-white font-semibold flex items-center gap-2">
+                <Send className="w-5 h-5" />
+                Descripción del Producto
+              </label>
+              <textarea
+                value={promoteDescription}
+                onChange={(e) => setPromoteDescription(e.target.value)}
+                placeholder="Describe tu producto... Ej: Nueva colección primavera 2025, vestidos importados, tallas S-XL 🌸"
+                className="w-full bg-gray-900 text-white border border-gray-700 rounded-xl p-4 min-h-[120px] focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none"
+                maxLength={500}
+              />
+              <p className="text-xs text-gray-400 text-right">
+                {promoteDescription.length}/500 caracteres
+              </p>
+            </div>
+
+            {/* Hora del Live */}
+            <div className="space-y-2">
+              <label className="text-white font-semibold flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                Fecha y Hora del Live
+              </label>
+              <input
+                type="datetime-local"
+                value={promoteLiveDate}
+                onChange={(e) => setPromoteLiveDate(e.target.value)}
+                min={getMinDateTime()}
+                max={getMaxDateTime()}
+                className="w-full bg-gray-900 text-white border border-gray-700 rounded-xl p-4 focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-400">
+                Selecciona cuándo comenzará tu transmisión en vivo (dentro de las próximas 24 horas)
+              </p>
+              {promoteLiveDate && (
+                <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3">
+                  <p className="text-purple-400 text-sm flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Las imágenes se eliminarán automáticamente cuando inicie el live
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Precio Mínimo */}
+            <div className="space-y-2">
+              <label className="text-white font-semibold flex items-center gap-2">
+                <DollarSign className="w-5 h-5" />
+                Precio Mínimo de Puja
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-semibold">
+                  RD$
+                </span>
+                <input
+                  type="number"
+                  value={promoteMinPrice}
+                  onChange={(e) => setPromoteMinPrice(e.target.value)}
+                  placeholder="0.00"
+                  min="0"
+                  step="50"
+                  className="w-full bg-gray-900 text-white border border-gray-700 rounded-xl p-4 pl-16 text-lg font-semibold focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                />
+              </div>
+              <p className="text-xs text-gray-400">
+                Este será el precio inicial en la subasta durante el live
+              </p>
+            </div>
+
+            {/* Botón de Publicar */}
+            <button
+              onClick={publishPromotePost}
+              disabled={promoteImages.length === 0 || !promoteLiveDate || !promoteDescription.trim() || !promoteMinPrice}
+              className="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:from-pink-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <PlusCircle className="w-6 h-6" />
+              Publicar Promoción
+            </button>
+
+            {/* Vista previa */}
+            {promoteImages.length > 0 && promoteLiveDate && promoteDescription && (
+              <div className="mt-6 space-y-2">
+                <h3 className="text-white font-semibold text-sm">Vista Previa:</h3>
+                <div className="bg-gray-900 rounded-xl p-4 border border-gray-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                      {currentUser?.username[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-white text-sm font-semibold">{currentUser?.username}</p>
+                      <p className="text-gray-400 text-xs">Santo Domingo</p>
+                    </div>
+                  </div>
+                  <img 
+                    src={promoteImages[0].url} 
+                    alt="Preview" 
+                    className="w-full aspect-square object-cover rounded-lg mb-2"
+                  />
+                  <p className="text-white text-sm mb-2">{promoteDescription}</p>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-pink-500 font-semibold">Precio mínimo: RD${promoteMinPrice}</span>
+                    <span className="text-gray-400">
+                      Live: {new Date(promoteLiveDate).toLocaleString('es-DO', { 
+                        day: '2-digit', 
+                        month: 'short', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Navigation */}
+          <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/10 safe-bottom">
+            <div className="grid grid-cols-5 gap-1 p-2">
+              <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
+                <Home className="w-6 h-6" />
+                <span className="text-xs font-medium">Inicio</span>
+              </button>
+              <button onClick={() => setActiveTab('search')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
+                <Search className="w-6 h-6" />
+                <span className="text-xs font-medium">Buscar</span>
+              </button>
+              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-pink-500">
+                <PlusCircle className="w-6 h-6" />
+                <span className="text-xs font-medium">Promocionar</span>
+              </button>
+              <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
+                <Bell className="w-6 h-6" />
+                <span className="text-xs font-medium">Alertas</span>
+              </button>
+              <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
                 <User className="w-6 h-6" />
                 <span className="text-xs font-medium">Perfil</span>
               </button>
@@ -1057,7 +1419,7 @@ const LiveShoppingApp = () => {
           
           {/* Bottom Navigation */}
           <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/10 safe-bottom">
-            <div className="grid grid-cols-4 gap-1 p-2">
+            <div className="grid grid-cols-5 gap-1 p-2">
               <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
                 <Home className="w-6 h-6" />
                 <span className="text-xs font-medium">Inicio</span>
@@ -1065,6 +1427,10 @@ const LiveShoppingApp = () => {
               <button onClick={() => setActiveTab('search')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
                 <Search className="w-6 h-6" />
                 <span className="text-xs font-medium">Buscar</span>
+              </button>
+              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
+                <PlusCircle className="w-6 h-6" />
+                <span className="text-xs font-medium">Promocionar</span>
               </button>
               <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
                 <Bell className="w-6 h-6" />
@@ -1278,16 +1644,249 @@ const LiveShoppingApp = () => {
           
           {/* Bottom Navigation */}
           <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-bottom">
-            <div className="grid grid-cols-3 gap-1 p-2">
+            <div className="grid grid-cols-4 gap-1 p-2">
               <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-purple-500">
                 <Video className="w-6 h-6" />
                 <span className="text-xs font-medium">Live</span>
+              </button>
+              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
+                <PlusCircle className="w-6 h-6" />
+                <span className="text-xs font-medium">Promocionar</span>
               </button>
               <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400 relative">
                 <Bell className="w-6 h-6" />
                 {notifications.length > 0 && (
                   <div className="absolute top-2 right-1/4 w-2 h-2 bg-red-500 rounded-full" />
                 )}
+                <span className="text-xs font-medium">Alertas</span>
+              </button>
+              <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
+                <User className="w-6 h-6" />
+                <span className="text-xs font-medium">Perfil</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    if (activeTab === 'promote') {
+      return (
+        <div className="min-h-screen bg-gray-50 pb-20">
+          {/* Header */}
+          <div className="bg-white border-b sticky top-0 z-10 p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold text-gray-800">Promocionar Piezas</h1>
+              <button
+                onClick={() => setActiveTab('home')}
+                className="text-gray-500 hover:text-gray-800 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+
+          {/* Formulario */}
+          <div className="p-4 space-y-6">
+            {/* Agregar Imágenes */}
+            <div className="space-y-3">
+              <h2 className="text-gray-800 font-semibold flex items-center gap-2">
+                <Camera className="w-5 h-5 text-purple-500" />
+                Imágenes del Producto
+              </h2>
+              
+              {/* Vista previa de imágenes */}
+              {promoteImages.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {promoteImages.map((img) => (
+                    <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200">
+                      <img 
+                        src={img.url} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        onClick={() => removePromoteImage(img.id)}
+                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-red-600 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <div className="absolute bottom-1 left-1 text-[10px] bg-black/60 text-white px-1.5 py-0.5 rounded">
+                        {img.source === 'camera' ? '📷' : '🖼️'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Botones para agregar imágenes */}
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => handleImageSelect(e, 'camera')}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:from-purple-600 hover:to-pink-600 transition-all shadow-md"
+                >
+                  <Camera className="w-5 h-5" />
+                  Cámara
+                </button>
+                
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleImageSelect(e, 'gallery')}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => imageInputRef.current?.click()}
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:from-blue-600 hover:to-cyan-600 transition-all shadow-md"
+                >
+                  <Plus className="w-5 h-5" />
+                  Galería
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 text-center">
+                {promoteImages.length}/10 imágenes agregadas
+              </p>
+            </div>
+
+            {/* Descripción */}
+            <div className="space-y-2">
+              <label className="text-gray-800 font-semibold flex items-center gap-2">
+                <Send className="w-5 h-5 text-purple-500" />
+                Descripción del Producto
+              </label>
+              <textarea
+                value={promoteDescription}
+                onChange={(e) => setPromoteDescription(e.target.value)}
+                placeholder="Describe tu producto... Ej: Nueva colección primavera 2025, vestidos importados, tallas S-XL 🌸"
+                className="w-full bg-white border-2 border-gray-200 text-gray-800 rounded-xl p-4 min-h-[120px] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
+                maxLength={500}
+              />
+              <p className="text-xs text-gray-500 text-right">
+                {promoteDescription.length}/500 caracteres
+              </p>
+            </div>
+
+            {/* Hora del Live */}
+            <div className="space-y-2">
+              <label className="text-gray-800 font-semibold flex items-center gap-2">
+                <Clock className="w-5 h-5 text-purple-500" />
+                Fecha y Hora del Live
+              </label>
+              <input
+                type="datetime-local"
+                value={promoteLiveDate}
+                onChange={(e) => setPromoteLiveDate(e.target.value)}
+                min={getMinDateTime()}
+                max={getMaxDateTime()}
+                className="w-full bg-white border-2 border-gray-200 text-gray-800 rounded-xl p-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+              <p className="text-xs text-gray-500">
+                📅 Selecciona cuándo comenzará tu transmisión en vivo (dentro de las próximas 24 horas)
+              </p>
+              {promoteLiveDate && (
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                  <p className="text-purple-700 text-sm flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    ⚠️ Las imágenes se eliminarán automáticamente cuando inicie el live
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Precio Mínimo */}
+            <div className="space-y-2">
+              <label className="text-gray-800 font-semibold flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-purple-500" />
+                Precio Mínimo de Puja
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg font-semibold">
+                  RD$
+                </span>
+                <input
+                  type="number"
+                  value={promoteMinPrice}
+                  onChange={(e) => setPromoteMinPrice(e.target.value)}
+                  placeholder="0.00"
+                  min="0"
+                  step="50"
+                  className="w-full bg-white border-2 border-gray-200 text-gray-800 rounded-xl p-4 pl-16 text-lg font-semibold focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                💰 Este será el precio inicial en la subasta durante el live
+              </p>
+            </div>
+
+            {/* Botón de Publicar */}
+            <button
+              onClick={publishPromotePost}
+              disabled={promoteImages.length === 0 || !promoteLiveDate || !promoteDescription.trim() || !promoteMinPrice}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <PlusCircle className="w-6 h-6" />
+              Publicar Promoción
+            </button>
+
+            {/* Vista previa */}
+            {promoteImages.length > 0 && promoteLiveDate && promoteDescription && (
+              <div className="mt-6 space-y-2">
+                <h3 className="text-gray-800 font-semibold text-sm">Vista Previa:</h3>
+                <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                      {currentUser?.username[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-gray-800 text-sm font-semibold">{currentUser?.username}</p>
+                      <p className="text-gray-500 text-xs">Santo Domingo</p>
+                    </div>
+                  </div>
+                  <img 
+                    src={promoteImages[0].url} 
+                    alt="Preview" 
+                    className="w-full aspect-square object-cover rounded-lg mb-2 border border-gray-200"
+                  />
+                  <p className="text-gray-700 text-sm mb-2">{promoteDescription}</p>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-purple-600 font-semibold">💵 Precio mínimo: RD${promoteMinPrice}</span>
+                    <span className="text-gray-500">
+                      🔴 {new Date(promoteLiveDate).toLocaleString('es-DO', { 
+                        day: '2-digit', 
+                        month: 'short', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Navigation */}
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-bottom shadow-lg">
+            <div className="grid grid-cols-4 gap-1 p-2">
+              <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
+                <Video className="w-6 h-6" />
+                <span className="text-xs font-medium">Live</span>
+              </button>
+              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-purple-500">
+                <PlusCircle className="w-6 h-6" />
+                <span className="text-xs font-medium">Promocionar</span>
+              </button>
+              <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
+                <Bell className="w-6 h-6" />
                 <span className="text-xs font-medium">Alertas</span>
               </button>
               <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
@@ -1339,10 +1938,14 @@ const LiveShoppingApp = () => {
           
           {/* Bottom Navigation */}
           <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-bottom">
-            <div className="grid grid-cols-3 gap-1 p-2">
+            <div className="grid grid-cols-4 gap-1 p-2">
               <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
                 <Video className="w-6 h-6" />
                 <span className="text-xs font-medium">Live</span>
+              </button>
+              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
+                <PlusCircle className="w-6 h-6" />
+                <span className="text-xs font-medium">Promocionar</span>
               </button>
               <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
                 <Bell className="w-6 h-6" />
