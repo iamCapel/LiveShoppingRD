@@ -64,6 +64,11 @@ const LiveShoppingApp = () => {
       location: 'Santo Domingo',
       avatar: '👗',
       images: ['https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=800', 'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?w=800', 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=800'],
+      pieces: [
+        { url: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=800', description: 'Vestido de verano floral, talla M', minPrice: 850 },
+        { url: 'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?w=800', description: 'Blusa elegante color blanco, talla S-L', minPrice: 550 },
+        { url: 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=800', description: 'Conjunto casual de 2 piezas', minPrice: 1200 }
+      ],
       description: '✨ Nueva colección verano 2025 — vestidos, blusas y conjuntos importados. Precios especiales solo durante el live 🔥',
       interested: 248,
       countdown: 1847,
@@ -76,9 +81,14 @@ const LiveShoppingApp = () => {
       location: 'Santiago',
       avatar: '👠',
       images: ['https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800', 'https://images.unsplash.com/photo-1535043934128-cf0b28d52f95?w=800', 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=800'],
+      pieces: [
+        { url: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800', description: 'Tacones elegantes talla 37-39', minPrice: 1500 },
+        { url: 'https://images.unsplash.com/photo-1535043934128-cf0b28d52f95?w=800', description: 'Sandalias de verano multicolor', minPrice: 950 },
+        { url: 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=800', description: 'Sneakers deportivos unisex', minPrice: 1800 }
+      ],
       description: 'Calzados importados colección 2025 👠 Sandalias, tacones, sneakers y más. ¡Stock limitado!',
       interested: 134,
-      countdown: 723,
+      countdown: 180, // 3 minutos - URGENTE
       currentSlide: 0
     },
     {
@@ -88,6 +98,11 @@ const LiveShoppingApp = () => {
       location: 'Santo Domingo',
       avatar: '💄',
       images: ['https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=800', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800', 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800'],
+      pieces: [
+        { url: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=800', description: 'Set completo de maquillaje profesional', minPrice: 2500 },
+        { url: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800', description: 'Paleta de sombras y rubores', minPrice: 1200 },
+        { url: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800', description: 'Base líquida acabado mate', minPrice: 800 }
+      ],
       description: 'Maquillaje profesional importado ✨ Sets completos, polvos, labiales y bases. Envío gratis en compras +RD$1,000 🇩🇴',
       interested: 89,
       countdown: 3601,
@@ -100,6 +115,11 @@ const LiveShoppingApp = () => {
       location: 'La Romana',
       avatar: '👜',
       images: ['https://images.unsplash.com/photo-1591561954555-607968cc0777?w=800', 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800', 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800'],
+      pieces: [
+        { url: 'https://images.unsplash.com/photo-1591561954555-607968cc0777?w=800', description: 'Bolso de mano elegante cuero sintético', minPrice: 1600 },
+        { url: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800', description: 'Cartera crossbody multi-compartimentos', minPrice: 1100 },
+        { url: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800', description: 'Mochila casual urbana', minPrice: 1400 }
+      ],
       description: 'Bolsos y carteras importadas 👜 Marcas reconocidas a precios de RD. Envíos a todo el país, pregunta por combos 🛒',
       interested: 412,
       countdown: 290,
@@ -113,6 +133,15 @@ const LiveShoppingApp = () => {
   const [promoteLiveDate, setPromoteLiveDate] = useState('');
   const [editingPiece, setEditingPiece] = useState(null); // Pieza que se está editando
   const [showPieceEditor, setShowPieceEditor] = useState(false);
+  
+  // Estados para transmisión en vivo
+  const [currentLivePost, setCurrentLivePost] = useState(null); // Post que se está transmitiendo
+  const [currentPieceIndex, setCurrentPieceIndex] = useState(null); // Índice de pieza seleccionada
+  const [showPieceModal, setShowPieceModal] = useState(false); // Modal de confirmación de venta
+  const [saleCountdown, setSaleCountdown] = useState(0); // Conteo regresivo de 10 segundos
+  const [currentBids, setCurrentBids] = useState([]); // Pujas actuales
+  const [pieceStatus, setPieceStatus] = useState(null); // 'selling', 'sold', 'unsold'
+  const [soldPieces, setSoldPieces] = useState([]); // Piezas ya vendidas
   
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -429,6 +458,21 @@ const LiveShoppingApp = () => {
   };
 
   const startLiveStream = async () => {
+    // Buscar el post programado del usuario actual
+    const myPost = livePosts.find(post => post.username === currentUser?.username && post.countdown > 0);
+    
+    if (!myPost) {
+      alert('No tienes lives programados para transmitir');
+      return;
+    }
+    
+    // Establecer el post actual y resetear estados
+    setCurrentLivePost(myPost);
+    setCurrentPieceIndex(null);
+    setSoldPieces([]);
+    setCurrentBids([]);
+    setPieceStatus(null);
+    
     // Guard para entornos sin navegador
     if (typeof navigator === 'undefined' || !navigator.mediaDevices) {
       alert('La cámara no está disponible en este entorno');
@@ -445,6 +489,7 @@ const LiveShoppingApp = () => {
         streamRef.current = stream;
       }
       setIsLive(true);
+      setActiveTab('home'); // Cambiar al tab principal
       
       if (currentUser) {
         setAllUsers(prev => prev.map(user => 
@@ -462,11 +507,95 @@ const LiveShoppingApp = () => {
     }
     setIsLive(false);
     setCurrentItem(null);
+    setCurrentLivePost(null);
+    setCurrentPieceIndex(null);
+    setSaleCountdown(0);
+    setCurrentBids([]);
+    setPieceStatus(null);
+    setSoldPieces([]);
     
     if (currentUser) {
       setAllUsers(prev => prev.map(user => 
         user.id === currentUser.id ? { ...user, isLive: false } : user
       ));
+    }
+  };
+
+  // Funciones para sistema de venta en vivo
+  const selectPiece = (index) => {
+    setCurrentPieceIndex(index);
+    setShowPieceModal(true);
+    setPieceStatus(null);
+    setCurrentBids([]);
+  };
+
+  const startPieceSale = () => {
+    setShowPieceModal(false);
+    setPieceStatus('selling');
+    setSaleCountdown(10);
+    
+    // Simular pujas aleatorias
+    const bidInterval = setInterval(() => {
+      const chance = Math.random();
+      if (chance > 0.4) { // 60% de probabilidad de recibir puja
+        const piece = currentLivePost.pieces[currentPieceIndex];
+        const minPrice = parseFloat(piece.minPrice) || 100;
+        const maxBid = currentBids.length > 0 ? Math.max(...currentBids.map(b => b.amount)) : minPrice;
+        const newBid = maxBid + Math.floor(Math.random() * 50) + 10;
+        
+        const bidders = ['Ana M.', 'Carlos R.', 'María G.', 'José L.', 'Laura P.', 'Pedro S.', 'Sofia V.'];
+        const randomBidder = bidders[Math.floor(Math.random() * bidders.length)];
+        
+        setCurrentBids(prev => [...prev, {
+          id: Date.now(),
+          user: randomBidder,
+          amount: newBid,
+          timestamp: Date.now()
+        }]);
+      }
+    }, 1500);
+    
+    // Countdown
+    const countInterval = setInterval(() => {
+      setSaleCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countInterval);
+          clearInterval(bidInterval);
+          finalizePieceSale();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const finalizePieceSale = () => {
+    if (currentBids.length > 0) {
+      // Hay pujas - pieza vendida
+      const winner = currentBids[currentBids.length - 1];
+      setPieceStatus('sold');
+      setSoldPieces(prev => [...prev, {
+        pieceIndex: currentPieceIndex,
+        winner: winner.user,
+        amount: winner.amount
+      }]);
+      
+      // Mostrar animación de felicitaciones por 3 segundos
+      setTimeout(() => {
+        setPieceStatus(null);
+        setCurrentPieceIndex(null);
+        setCurrentBids([]);
+      }, 3000);
+    } else {
+      // No hay pujas - para la próxima
+      setPieceStatus('unsold');
+      
+      // Mostrar mensaje por 2 segundos
+      setTimeout(() => {
+        setPieceStatus(null);
+        setCurrentPieceIndex(null);
+        setCurrentBids([]);
+      }, 2000);
     }
   };
 
@@ -778,6 +907,13 @@ const LiveShoppingApp = () => {
 
   // VISTA PRINCIPAL - COMPRADOR
   if (userType === 'buyer') {
+    // Verificar si hay lives urgentes programados
+    const urgentLive = livePosts.find(post => 
+      post.username === currentUser?.username && 
+      post.countdown > 0 && 
+      post.countdown <= 300 // 5 minutos
+    );
+
     // Tab Home - Feed principal
     if (activeTab === 'home') {
       const liveUsers = allUsers.filter(u => u.isLive && u.isFollowing);
@@ -785,6 +921,29 @@ const LiveShoppingApp = () => {
       
       return (
         <div className="min-h-screen bg-black pb-20">
+          {/* Notificación flotante de live urgente */}
+          {urgentLive && !isLive && (
+            <div className="fixed top-4 left-4 right-4 z-50 animate-fade-in">
+              <div className="bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl p-4 shadow-2xl border-2 border-white">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                    <Bell className="w-7 h-7 text-red-500 animate-pulse" />
+                  </div>
+                  <div className="flex-1 text-white">
+                    <p className="font-bold text-lg">¡Es hora de transmitir!</p>
+                    <p className="text-sm opacity-90">Tu live comienza en {Math.floor(urgentLive.countdown / 60)}m {urgentLive.countdown % 60}s</p>
+                  </div>
+                  <button
+                    onClick={startLiveStream}
+                    className="bg-white text-red-500 px-6 py-3 rounded-xl font-bold shadow-lg hover:scale-105 transition-transform"
+                  >
+                    Comenzar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Header */}
           <div className="bg-black/80 backdrop-blur-xl border-b border-white/10 sticky top-0 z-10">
             <div className="p-4">
@@ -1502,6 +1661,211 @@ const LiveShoppingApp = () => {
       );
     }
     
+    // Tab Notifications - Alertas
+    if (activeTab === 'notifications') {
+      // Mis lives programados próximos
+      const myUpcomingLives = livePosts.filter(post => {
+        return post.username === currentUser?.username && post.countdown > 0;
+      }).sort((a, b) => a.countdown - b.countdown);
+
+      // Publicaciones recientes de personas seguidas
+      const followedPosts = livePosts.filter(post => {
+        const seller = allUsers.find(u => u.username === post.username);
+        return seller && seller.isFollowing;
+      }).slice(0, 10);
+
+      return (
+        <div className="min-h-screen bg-black pb-20">
+          {/* Header */}
+          <div className="bg-black/80 backdrop-blur-xl border-b border-white/10 sticky top-0 z-10 p-4">
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+              <Bell className="w-7 h-7 text-pink-500" />
+              Alertas
+            </h1>
+          </div>
+
+          <div className="p-4 space-y-6">
+            {/* Mis Lives Programados */}
+            <div className="space-y-3">
+              <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                <Clock className="w-5 h-5 text-pink-500" />
+                Mis Lives Programados
+              </h2>
+              
+              {myUpcomingLives.length === 0 ? (
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6 text-center">
+                  <Clock className="w-12 h-12 text-gray-600 mx-auto mb-2" />
+                  <p className="text-gray-400 text-sm mb-2">No tienes lives programados</p>
+                  <p className="text-gray-500 text-xs mb-4">📝 Crea un post promocional para ver tus lives aquí</p>
+                  <button
+                    onClick={() => setActiveTab('promote')}
+                    className="text-pink-400 text-sm font-semibold hover:text-pink-300 transition-colors"
+                  >
+                    Promocionar piezas →
+                  </button>
+                </div>
+              ) : (
+                myUpcomingLives.map(post => {
+                  const timeRemaining = post.countdown;
+                  const hours = Math.floor(timeRemaining / 3600);
+                  const minutes = Math.floor((timeRemaining % 3600) / 60);
+                  const seconds = timeRemaining % 60;
+                  const isUrgent = timeRemaining <= 300; // 5 minutos
+
+                  return (
+                    <div 
+                      key={post.id} 
+                      className={`bg-gradient-to-r ${
+                        isUrgent 
+                          ? 'from-red-500/20 to-pink-500/20 border-red-500/50 animate-pulse' 
+                          : 'from-purple-500/10 to-pink-500/10 border-purple-500/30'
+                      } backdrop-blur-md border rounded-xl p-4 hover:scale-[1.02] transition-transform`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <img 
+                            src={post.images[0]} 
+                            alt={post.username}
+                            className="w-16 h-16 rounded-lg object-cover"
+                          />
+                          {isUrgent && (
+                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center animate-pulse">
+                              <Bell className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex-1">
+                          <p className="text-white font-semibold">
+                            {isUrgent ? '🔴 ¡ES HORA DE TRANSMITIR!' : 'Mi Live Programado'}
+                          </p>
+                          <p className="text-gray-300 text-sm line-clamp-1">{post.description}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className={`${
+                              isUrgent ? 'text-red-400' : 'text-pink-400'
+                            } text-sm font-bold flex items-center gap-1`}>
+                              <Clock className="w-4 h-4" />
+                              {hours > 0 && `${hours}h `}{minutes}m {isUrgent && `${seconds}s`}
+                            </div>
+                            <span className="text-gray-500 text-xs">•</span>
+                            <span className="text-gray-400 text-xs">{post.interested} interesados</span>
+                          </div>
+                        </div>
+
+                        {isUrgent ? (
+                          <button
+                            onClick={startLiveStream}
+                            className="bg-gradient-to-r from-red-500 to-pink-500 text-white text-sm font-bold px-6 py-3 rounded-full hover:from-red-600 hover:to-pink-600 transition-all shadow-lg animate-bounce"
+                          >
+                            Comenzar
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setActiveTab('promote')}
+                            className="bg-purple-500/20 text-purple-300 text-xs font-bold px-4 py-2 rounded-full hover:bg-purple-500/30 transition-colors"
+                          >
+                            Editar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Publicaciones de personas seguidas */}
+            <div className="space-y-3">
+              <h2 className="text-white font-bold text-lg flex items-center gap-2">
+                <Heart className="w-5 h-5 text-pink-500" />
+                Siguiendo
+              </h2>
+              
+              {followedPosts.length === 0 ? (
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6 text-center">
+                  <UserPlus className="w-12 h-12 text-gray-600 mx-auto mb-2" />
+                  <p className="text-gray-400 text-sm mb-2">No sigues a ningún vendedor aún</p>
+                  <button
+                    onClick={() => setActiveTab('search')}
+                    className="text-pink-500 text-sm font-semibold hover:text-pink-400 transition-colors"
+                  >
+                    Buscar vendedores →
+                  </button>
+                </div>
+              ) : (
+                followedPosts.map(post => (
+                  <div 
+                    key={post.id}
+                    className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-all cursor-pointer"
+                    onClick={() => setActiveTab('home')}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                        {post.avatar}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-white font-semibold text-sm">{post.username}</p>
+                        <p className="text-gray-400 text-xs">{post.location}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-pink-500 text-xs font-semibold">
+                          {formatCountdown(post.countdown)}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      {post.images.slice(0, 3).map((img, idx) => (
+                        <img 
+                          key={idx}
+                          src={img}
+                          alt={`Producto ${idx + 1}`}
+                          className="w-full aspect-square object-cover rounded-lg"
+                        />
+                      ))}
+                    </div>
+                    
+                    <p className="text-gray-300 text-sm line-clamp-2 mb-2">{post.description}</p>
+                    
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-pink-500 font-semibold">{post.interested} interesados</span>
+                      <span className="text-gray-400">Live: {formatCountdown(post.countdown)}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Bottom Navigation */}
+          <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/10 safe-bottom">
+            <div className="grid grid-cols-5 gap-1 p-2">
+              <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
+                <Home className="w-6 h-6" />
+                <span className="text-xs font-medium">Inicio</span>
+              </button>
+              <button onClick={() => setActiveTab('search')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
+                <Search className="w-6 h-6" />
+                <span className="text-xs font-medium">Buscar</span>
+              </button>
+              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
+                <PlusCircle className="w-6 h-6" />
+                <span className="text-xs font-medium">Promocionar</span>
+              </button>
+              <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-pink-500">
+                <Bell className="w-6 h-6" />
+                <span className="text-xs font-medium">Alertas</span>
+              </button>
+              <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
+                <User className="w-6 h-6" />
+                <span className="text-xs font-medium">Perfil</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     // Tab Profile
     if (activeTab === 'profile') {
       return (
@@ -1560,612 +1924,6 @@ const LiveShoppingApp = () => {
                 <span className="text-xs font-medium">Alertas</span>
               </button>
               <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-pink-500">
-                <User className="w-6 h-6" />
-                <span className="text-xs font-medium">Perfil</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-  }
-
-  // VISTA VENDEDOR
-  if (userType === 'seller') {
-    if (activeTab === 'home') {
-      return (
-        <div className="min-h-screen bg-black pb-20">
-          {/* Header */}
-          <div className="bg-black/80 backdrop-blur-xl border-b border-white/10">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                    {currentUser?.username[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <h2 className="font-bold text-gray-800">{currentUser?.username}</h2>
-                    <p className="text-xs text-gray-500">{currentUser?.followers} seguidores</p>
-                  </div>
-                </div>
-                {!isLive && (
-                  <button
-                    onClick={startLiveStream}
-                    className="bg-red-500 text-white px-5 py-2 rounded-xl font-semibold flex items-center gap-2 shadow-lg hover:bg-red-600 transition-colors"
-                  >
-                    <Video className="w-5 h-5" />
-                    En vivo
-                  </button>
-                )}
-              </div>
-              
-              {/* Stories */}
-              <div className="flex gap-3 overflow-x-auto pb-3 -mx-4 px-4 scrollbar-hide">
-                <button
-                  onClick={() => setShowAddStory(true)}
-                  className="flex-shrink-0 flex flex-col items-center gap-2"
-                >
-                  <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
-                    <Plus className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <span className="text-xs text-gray-600">Tu Story</span>
-                </button>
-                
-                {myStories.length > 0 && (
-                  <button
-                    onClick={() => viewStories({ ...currentUser, stories: myStories })}
-                    className="flex-shrink-0 flex flex-col items-center gap-2"
-                  >
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 p-0.5">
-                      <div 
-                        className="w-full h-full rounded-full bg-cover bg-center border-2 border-white"
-                        style={{ backgroundImage: `url(${myStories[myStories.length - 1].image})` }}
-                      />
-                    </div>
-                    <span className="text-xs text-gray-600">{myStories.length} story</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          {/* Panel de control de live */}
-          {isLive && (
-            <div className="p-4 space-y-4">
-              {/* Video */}
-              <div className="bg-black rounded-2xl overflow-hidden relative aspect-video shadow-xl">
-                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-                <div className="absolute top-3 left-3 bg-red-500 text-white px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                  EN VIVO
-                </div>
-                <div className="absolute top-3 right-3 bg-black/60 text-white px-3 py-1.5 rounded-full text-sm flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  {viewers}
-                </div>
-              </div>
-              
-              {/* Controles */}
-              <div className="bg-white rounded-2xl p-4 shadow-sm space-y-4">
-                <div className="flex gap-2">
-                  <button
-                    onClick={showNewItem}
-                    className="flex-1 bg-purple-500 text-white py-3 rounded-xl font-semibold hover:bg-purple-600 transition-colors"
-                  >
-                    Nueva Pieza
-                  </button>
-                  <button
-                    onClick={stopLiveStream}
-                    className="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
-                  >
-                    Detener
-                  </button>
-                </div>
-                
-                {currentItem && (
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                    <h3 className="font-bold text-gray-800">{currentItem.name}</h3>
-                    
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => setSaleType('fixed')}
-                        className={`py-3 rounded-xl font-medium transition-all ${
-                          saleType === 'fixed' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600'
-                        }`}
-                      >
-                        Precio fijo
-                      </button>
-                      <button
-                        onClick={() => setSaleType('auction')}
-                        className={`py-3 rounded-xl font-medium transition-all ${
-                          saleType === 'auction' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600'
-                        }`}
-                      >
-                        Subasta
-                      </button>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        placeholder={saleType === 'auction' ? 'Puja inicial' : 'Precio'}
-                        className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      />
-                      <button
-                        onClick={setItemPrice}
-                        className="bg-green-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-green-600 transition-colors"
-                      >
-                        OK
-                      </button>
-                    </div>
-                    
-                    {saleType === 'auction' && currentBid > 0 && (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="text-xs text-yellow-700">Puja actual</p>
-                            <p className="text-xl font-bold text-yellow-600">${currentBid.toFixed(2)}</p>
-                            {highestBidder && (
-                              <p className="text-xs text-yellow-600">Por: {highestBidder}</p>
-                            )}
-                          </div>
-                          {auctionActive && (
-                            <div className="text-center">
-                              <p className="text-xs text-yellow-700">Cierra en</p>
-                              <p className={`text-3xl font-bold ${auctionTime <= 3 ? 'text-red-500 animate-pulse' : 'text-yellow-600'}`}>
-                                {auctionTime}s
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              {/* Notificaciones */}
-              {notifications.length > 0 && (
-                <div className="bg-white rounded-2xl p-4 shadow-sm">
-                  <h3 className="font-bold text-gray-800 mb-3">Actividad reciente</h3>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {notifications.slice(0, 5).map(notif => (
-                      <div key={notif.id} className="bg-gray-50 rounded-xl p-3 text-sm">
-                        <p className="font-semibold text-gray-800">{notif.user}</p>
-                        <p className="text-gray-600">
-                          {notif.type === 'reservation' ? '¡Reservó!' : 
-                           notif.type === 'bid' ? `Pujó $${notif.amount}` : 
-                           'Actividad'}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          
-          {!isLive && (
-            <div className="p-4">
-              <div className="bg-white rounded-2xl p-8 text-center">
-                <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Video className="w-10 h-10 text-purple-500" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">Comienza tu transmisión</h3>
-                <p className="text-gray-600 text-sm mb-4">Muestra tus productos en vivo y vende en tiempo real</p>
-                <button
-                  onClick={startLiveStream}
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
-                >
-                  Ir en vivo ahora
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Bottom Navigation */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-bottom">
-            <div className="grid grid-cols-4 gap-1 p-2">
-              <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-purple-500">
-                <Video className="w-6 h-6" />
-                <span className="text-xs font-medium">Live</span>
-              </button>
-              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
-                <PlusCircle className="w-6 h-6" />
-                <span className="text-xs font-medium">Promocionar</span>
-              </button>
-              <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400 relative">
-                <Bell className="w-6 h-6" />
-                {notifications.length > 0 && (
-                  <div className="absolute top-2 right-1/4 w-2 h-2 bg-red-500 rounded-full" />
-                )}
-                <span className="text-xs font-medium">Alertas</span>
-              </button>
-              <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
-                <User className="w-6 h-6" />
-                <span className="text-xs font-medium">Perfil</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    
-    if (activeTab === 'promote') {
-      return (
-        <div className="min-h-screen bg-gray-50 pb-20">
-          {/* Header */}
-          <div className="bg-white border-b sticky top-0 z-10 p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold text-gray-800">Promocionar Piezas</h1>
-              <button
-                onClick={() => setActiveTab('home')}
-                className="text-gray-500 hover:text-gray-800 transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-          </div>
-
-          {/* Modal Editor de Pieza */}
-          {showPieceEditor && editingPiece && (
-            <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-                <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between">
-                  <h3 className="text-gray-800 font-bold text-lg">Detalles de la Pieza</h3>
-                  <button
-                    onClick={cancelPieceEdit}
-                    className="text-gray-500 hover:text-gray-800"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-                
-                <div className="p-4 space-y-4">
-                  {/* Imagen */}
-                  <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200">
-                    <img 
-                      src={editingPiece.url} 
-                      alt="Pieza" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  {/* Descripción */}
-                  <div className="space-y-2">
-                    <label className="text-gray-800 font-semibold text-sm flex items-center gap-2">
-                      <Send className="w-4 h-4 text-purple-500" />
-                      Descripción de esta pieza
-                    </label>
-                    <textarea
-                      value={editingPiece.description}
-                      onChange={(e) => setEditingPiece({ ...editingPiece, description: e.target.value })}
-                      placeholder="Ej: Vestido floral talla M, 100% algodón 🌸"
-                      className="w-full bg-white border-2 border-gray-200 text-gray-800 rounded-xl p-3 min-h-[100px] focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-sm"
-                      maxLength={200}
-                    />
-                    <p className="text-xs text-gray-500 text-right">
-                      {editingPiece.description.length}/200
-                    </p>
-                  </div>
-
-                  {/* Precio Mínimo */}
-                  <div className="space-y-2">
-                    <label className="text-gray-800 font-semibold text-sm flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-purple-500" />
-                      Precio Mínimo
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">
-                        RD$
-                      </span>
-                      <input
-                        type="number"
-                        value={editingPiece.minPrice}
-                        onChange={(e) => setEditingPiece({ ...editingPiece, minPrice: e.target.value })}
-                        placeholder="0.00"
-                        min="0"
-                        step="50"
-                        className="w-full bg-white border-2 border-gray-200 text-gray-800 rounded-xl p-3 pl-14 font-semibold focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Botones */}
-                  <div className="flex gap-2 pt-2">
-                    <button
-                      onClick={cancelPieceEdit}
-                      className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={() => savePieceDetails(editingPiece.id, editingPiece.description, editingPiece.minPrice)}
-                      disabled={!editingPiece.description.trim() || !editingPiece.minPrice || parseFloat(editingPiece.minPrice) <= 0}
-                      className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Guardar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Formulario */}
-          <div className="p-4 space-y-6">
-            {/* Agregar Imágenes */}
-            <div className="space-y-3">
-              <h2 className="text-gray-800 font-semibold flex items-center gap-2">
-                <Image className="w-5 h-5 text-purple-500" />
-                Piezas a Promocionar
-              </h2>
-              
-              {/* Vista previa de imágenes con detalles */}
-              {promoteImages.length > 0 && (
-                <div className="space-y-3 mb-3">
-                  {promoteImages.map((piece, index) => (
-                    <div key={piece.id} className="bg-white rounded-xl p-3 border-2 border-gray-200 shadow-sm">
-                      <div className="flex gap-3">
-                        {/* Imagen */}
-                        <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-50 border border-gray-200">
-                          <img 
-                            src={piece.url} 
-                            alt={`Pieza ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute bottom-1 left-1 text-[10px] bg-black/70 text-white px-1.5 py-0.5 rounded">
-                            {piece.source === 'camera' ? '📷' : '🖼️'}
-                          </div>
-                        </div>
-
-                        {/* Detalles */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <h3 className="text-gray-800 font-semibold text-sm">Pieza #{index + 1}</h3>
-                            <button
-                              onClick={() => removePromoteImage(piece.id)}
-                              className="flex-shrink-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-
-                          {piece.description && piece.minPrice ? (
-                            <div className="space-y-1">
-                              <p className="text-gray-600 text-xs line-clamp-2">{piece.description}</p>
-                              <p className="text-purple-600 font-bold text-sm">RD${piece.minPrice}</p>
-                              <button
-                                onClick={() => editPiece(piece)}
-                                className="text-purple-500 text-xs hover:text-purple-600 transition-colors"
-                              >
-                                ✏️ Editar detalles
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => editPiece(piece)}
-                              className="text-yellow-700 text-xs bg-yellow-100 px-3 py-2 rounded-lg hover:bg-yellow-200 transition-colors font-medium"
-                            >
-                              ⚠️ Agregar descripción y precio
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {/* Botones para agregar imágenes */}
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(e) => handleImageSelect(e, 'camera')}
-                  className="hidden"
-                />
-                <button
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:from-purple-600 hover:to-pink-600 transition-all shadow-md"
-                >
-                  <Camera className="w-5 h-5" />
-                  Cámara
-                </button>
-                
-                <input
-                  ref={imageInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => handleImageSelect(e, 'gallery')}
-                  className="hidden"
-                />
-                <button
-                  onClick={() => imageInputRef.current?.click()}
-                  className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:from-blue-600 hover:to-cyan-600 transition-all shadow-md"
-                >
-                  <Plus className="w-5 h-5" />
-                  Galería
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 text-center">
-                {promoteImages.length}/10 piezas agregadas
-              </p>
-            </div>
-
-            {/* Hora del Live */}
-            <div className="space-y-2">
-              <label className="text-gray-800 font-semibold flex items-center gap-2">
-                <Clock className="w-5 h-5 text-purple-500" />
-                Fecha y Hora del Live
-              </label>
-              <input
-                type="datetime-local"
-                value={promoteLiveDate}
-                onChange={(e) => setPromoteLiveDate(e.target.value)}
-                min={getMinDateTime()}
-                max={getMaxDateTime()}
-                className="w-full bg-white border-2 border-gray-200 text-gray-800 rounded-xl p-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-              />
-              <p className="text-xs text-gray-500">
-                📅 Selecciona cuándo comenzará tu transmisión en vivo (dentro de las próximas 24 horas)
-              </p>
-              {promoteLiveDate && (
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-                  <p className="text-purple-700 text-sm flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    ⚠️ Las imágenes se eliminarán automáticamente cuando inicie el live
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Botón de Publicar */}
-            <button
-              onClick={publishPromotePost}
-              disabled={promoteImages.length === 0 || !promoteLiveDate || promoteImages.some(img => !img.description || !img.minPrice)}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              <PlusCircle className="w-6 h-6" />
-              Publicar {promoteImages.length} {promoteImages.length === 1 ? 'Pieza' : 'Piezas'}
-            </button>
-
-            {/* Vista previa */}
-            {promoteImages.length > 0 && promoteLiveDate && promoteImages.every(img => img.description && img.minPrice) && (
-              <div className="mt-6 space-y-2">
-                <h3 className="text-gray-800 font-semibold text-sm">Vista Previa:</h3>
-                <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                      {currentUser?.username[0].toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-gray-800 text-sm font-semibold">{currentUser?.username}</p>
-                      <p className="text-gray-500 text-xs">Santo Domingo</p>
-                    </div>
-                  </div>
-                  
-                  {/* Carrusel de imágenes preview */}
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    {promoteImages.slice(0, 4).map((piece, idx) => (
-                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200">
-                        <img 
-                          src={piece.url} 
-                          alt={`Pieza ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                        {idx === 3 && promoteImages.length > 4 && (
-                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                            <span className="text-white font-bold text-lg">+{promoteImages.length - 4}</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  <p className="text-gray-700 text-sm mb-2">
-                    {promoteImages.length} pieza{promoteImages.length > 1 ? 's' : ''} disponible{promoteImages.length > 1 ? 's' : ''} - Desde RD${Math.min(...promoteImages.map(p => parseFloat(p.minPrice)))}
-                  </p>
-                  
-                  <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-gray-200">
-                    <span className="text-purple-600 font-semibold">💰 {promoteImages.length} piezas en subasta</span>
-                    <span className="text-gray-500">
-                      🔴 {new Date(promoteLiveDate).toLocaleString('es-DO', { 
-                        day: '2-digit', 
-                        month: 'short', 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Bottom Navigation */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-bottom shadow-lg">
-            <div className="grid grid-cols-4 gap-1 p-2">
-              <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
-                <Video className="w-6 h-6" />
-                <span className="text-xs font-medium">Live</span>
-              </button>
-              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-purple-500">
-                <PlusCircle className="w-6 h-6" />
-                <span className="text-xs font-medium">Promocionar</span>
-              </button>
-              <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
-                <Bell className="w-6 h-6" />
-                <span className="text-xs font-medium">Alertas</span>
-              </button>
-              <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
-                <User className="w-6 h-6" />
-                <span className="text-xs font-medium">Perfil</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    
-    if (activeTab === 'profile') {
-      return (
-        <div className="min-h-screen bg-gray-50 pb-20">
-          <div className="bg-white border-b p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-2xl">
-                {currentUser?.username[0].toUpperCase()}
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">{currentUser?.username}</h2>
-                <p className="text-gray-600">{currentUser?.name}</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-4 py-4 border-t">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-gray-800">{currentUser?.followers || 0}</p>
-                <p className="text-sm text-gray-600">Seguidores</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-gray-800">{reservations.length}</p>
-                <p className="text-sm text-gray-600">Ventas</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-gray-800">{myStories.length}</p>
-                <p className="text-sm text-gray-600">Stories</p>
-              </div>
-            </div>
-            
-            <button
-              onClick={() => setIsRegistered(false)}
-              className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200 transition-colors"
-            >
-              Cerrar Sesión
-            </button>
-          </div>
-          
-          {/* Bottom Navigation */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-bottom">
-            <div className="grid grid-cols-4 gap-1 p-2">
-              <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
-                <Video className="w-6 h-6" />
-                <span className="text-xs font-medium">Live</span>
-              </button>
-              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
-                <PlusCircle className="w-6 h-6" />
-                <span className="text-xs font-medium">Promocionar</span>
-              </button>
-              <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
-                <Bell className="w-6 h-6" />
-                <span className="text-xs font-medium">Alertas</span>
-              </button>
-              <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-purple-500">
                 <User className="w-6 h-6" />
                 <span className="text-xs font-medium">Perfil</span>
               </button>
