@@ -55,6 +55,59 @@ const LiveShoppingApp = () => {
   const [storyText, setStoryText] = useState('');
   const [viewingLive, setViewingLive] = useState(null);
   
+  // Posts de LiveSell
+  const [livePosts, setLivePosts] = useState([
+    {
+      id: 1,
+      username: 'modasanard',
+      name: 'Moda Sanard',
+      location: 'Santo Domingo',
+      avatar: '👗',
+      images: ['https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=800', 'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?w=800', 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=800'],
+      description: '✨ Nueva colección verano 2025 — vestidos, blusas y conjuntos importados. Precios especiales solo durante el live 🔥',
+      interested: 248,
+      countdown: 1847,
+      currentSlide: 0
+    },
+    {
+      id: 2,
+      username: 'styledr_oficial',
+      name: 'Style DR',
+      location: 'Santiago',
+      avatar: '👠',
+      images: ['https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800', 'https://images.unsplash.com/photo-1535043934128-cf0b28d52f95?w=800', 'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=800'],
+      description: 'Calzados importados colección 2025 👠 Sandalias, tacones, sneakers y más. ¡Stock limitado!',
+      interested: 134,
+      countdown: 723,
+      currentSlide: 0
+    },
+    {
+      id: 3,
+      username: 'glamrd_beauty',
+      name: 'Glam RD Beauty',
+      location: 'Santo Domingo',
+      avatar: '💄',
+      images: ['https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=800', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800', 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800'],
+      description: 'Maquillaje profesional importado ✨ Sets completos, polvos, labiales y bases. Envío gratis en compras +RD$1,000 🇩🇴',
+      interested: 89,
+      countdown: 3601,
+      currentSlide: 0
+    },
+    {
+      id: 4,
+      username: 'bolsasrd_store',
+      name: 'Bolsas RD',
+      location: 'La Romana',
+      avatar: '👜',
+      images: ['https://images.unsplash.com/photo-1591561954555-607968cc0777?w=800', 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800', 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800'],
+      description: 'Bolsos y carteras importadas 👜 Marcas reconocidas a precios de RD. Envíos a todo el país, pregunta por combos 🛒',
+      interested: 412,
+      countdown: 290,
+      currentSlide: 0
+    }
+  ]);
+  const [interestedPosts, setInterestedPosts] = useState(new Set());
+  
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
@@ -70,6 +123,65 @@ const LiveShoppingApp = () => {
       return () => clearInterval(interval);
     }
   }, [isLive]);
+  
+  // Countdown para posts
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLivePosts(prev => prev.map(post => ({
+        ...post,
+        countdown: Math.max(0, post.countdown - 1)
+      })));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  
+  const formatCountdown = (seconds) => {
+    if (seconds <= 0) return '00:00';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    const mm = String(m).padStart(2, '0');
+    const ss = String(s).padStart(2, '0');
+    return h > 0 ? `${String(h).padStart(2, '0')}:${mm}:${ss}` : `${mm}:${ss}`;
+  };
+  
+  const nextSlide = (postId) => {
+    setLivePosts(prev => prev.map(post => {
+      if (post.id === postId) {
+        return { ...post, currentSlide: (post.currentSlide + 1) % post.images.length };
+      }
+      return post;
+    }));
+  };
+  
+  const prevSlide = (postId) => {
+    setLivePosts(prev => prev.map(post => {
+      if (post.id === postId) {
+        return { ...post, currentSlide: (post.currentSlide - 1 + post.images.length) % post.images.length };
+      }
+      return post;
+    }));
+  };
+  
+  const toggleInterested = (postId) => {
+    setInterestedPosts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(postId)) {
+        newSet.delete(postId);
+      } else {
+        newSet.add(postId);
+      }
+      return newSet;
+    });
+    
+    setLivePosts(prev => prev.map(post => {
+      if (post.id === postId && !interestedPosts.has(postId)) {
+        return { ...post, interested: post.interested + 1 };
+      }
+      return post;
+    }));
+  };
+  
   // Mostrar la página de autenticación si no está registrado
   if (!isRegistered) {
     return <Auth onAuth={handleAuth} />;
@@ -529,37 +641,37 @@ const LiveShoppingApp = () => {
       const followedWithStories = following.filter(u => u.stories && u.stories.length > 0);
       
       return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-black pb-20">
           {/* Header */}
-          <div className="bg-white border-b sticky top-0 z-10">
+          <div className="bg-black/80 backdrop-blur-xl border-b border-white/10 sticky top-0 z-10">
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold flex items-center gap-1">
                   <span className="bg-gradient-to-r from-red-500 to-pink-500 px-2.5 py-0.5 rounded-lg text-white font-bold uppercase tracking-wider transform -skew-x-6 shadow-lg text-base" style={{ fontFamily: "'Arial Black', sans-serif" }}>
                     LIVE
                   </span>
-                  <span className="text-gray-800 italic" style={{ fontFamily: "'Playfair Display', serif" }}>ShoppingRD</span>
+                  <span className="text-white italic" style={{ fontFamily: "'Playfair Display', serif" }}>ShoppingRD</span>
                 </h1>
-                <Bell className="w-6 h-6 text-gray-600" />
+                <Bell className="w-6 h-6 text-gray-300" />
               </div>
               
               {/* Stories */}
               {followedWithStories.length > 0 && (
-                <div className="flex gap-3 overflow-x-auto pb-3 -mx-4 px-4 scrollbar-hide">
+                <div className="flex gap-4 overflow-x-auto pb-3 -mx-4 px-4 scrollbar-hide">
                   {followedWithStories.map(user => (
                     <button
                       key={user.id}
                       onClick={() => viewStories(user)}
                       className="flex-shrink-0 flex flex-col items-center gap-2"
                     >
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 p-0.5">
-                        <div className="w-full h-full bg-white rounded-full p-0.5">
-                          <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-red-500 p-[3px]">
+                        <div className="w-full h-full bg-black rounded-full p-[3px]">
+                          <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-full flex items-center justify-center text-white font-bold text-lg border-2 border-gray-700">
                             {user.username[0].toUpperCase()}
                           </div>
                         </div>
                       </div>
-                      <span className="text-xs text-gray-600 max-w-[64px] truncate">{user.username}</span>
+                      <span className="text-xs text-gray-300 max-w-[72px] truncate">{user.username}</span>
                     </button>
                   ))}
                 </div>
@@ -567,55 +679,116 @@ const LiveShoppingApp = () => {
             </div>
           </div>
           
-          {/* Lives activos */}
-          {liveUsers.length > 0 && (
-            <div className="p-4">
-              <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                En vivo ahora
-              </h2>
-              <div className="space-y-3">
-                {liveUsers.map(user => (
+          {/* Posts de LiveSell */}
+          <div className="space-y-0">
+            {livePosts.map(post => (
+              <article key={post.id} className="border-b border-white/10">
+                {/* Header del post */}
+                <div className="flex items-center gap-3 p-4 pb-3">
+                  <div className="w-12 h-12 rounded-full p-[2.5px] bg-gradient-to-tr from-red-500 to-orange-500 shadow-lg shadow-red-500/30 flex-shrink-0">
+                    <div className="w-full h-full rounded-full bg-black p-[2.5px]">
+                      <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-2xl border-2 border-black">
+                        {post.avatar}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-extrabold text-white text-sm truncate">{post.username}</div>
+                    <div className="text-[10px] text-gray-600 mt-0.5">{post.location}</div>
+                  </div>
+                  <div className="flex items-center gap-2 bg-red-500/10 backdrop-blur-sm border border-red-500/40 rounded-xl px-3 py-1.5 flex-shrink-0">
+                    <div className="w-2 h-2 rounded-full bg-red-500 shadow-lg shadow-red-500 animate-pulse" />
+                    <span className="text-[9px] font-black text-red-500 tracking-widest">LIVESELL</span>
+                    <div className="w-px h-4 bg-red-500/30" />
+                    <span className={`text-[13px] font-black tracking-wider ${post.countdown <= 120 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+                      {formatCountdown(post.countdown)}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Carousel de imágenes */}
+                <div className="relative bg-gray-900 aspect-square">
+                  <div className="absolute inset-0 overflow-hidden">
+                    <div 
+                      className="flex h-full transition-transform duration-300 ease-out"
+                      style={{ transform: `translateX(-${post.currentSlide * 100}%)` }}
+                    >
+                      {post.images.map((img, idx) => (
+                        <div key={idx} className="w-full h-full flex-shrink-0 relative">
+                          <img src={img} alt="" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30 pointer-events-none" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Dots  indicadores */}
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                    {post.images.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={`h-1.5 rounded-full transition-all ${
+                          idx === post.currentSlide 
+                            ? 'w-5 bg-white' 
+                            : 'w-1.5 bg-white/30'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  
+                  {/* Flechas de navegación */}
+                  {post.images.length > 1 && (
+                    <>
+                      <button
+                        onClick={() => prevSlide(post.id)}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white flex items-center justify-center hover:bg-black/70 transition-all z-10"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        onClick={() => nextSlide(post.id)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white flex items-center justify-center hover:bg-black/70 transition-all z-10"
+                      >
+                        ›
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                {/* Descripción */}
+                <div className="px-4 py-3 text-sm text-gray-300 leading-relaxed">
+                  <span className="font-extrabold text-white">{post.username}</span> {post.description}
+                </div>
+                
+                {/* Footer con acciones */}
+                <div className="flex items-center justify-between px-4 pb-4 gap-3">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 font-semibold">
+                    <span className="text-base">🛍️</span>
+                    {post.interested} interesados
+                  </div>
                   <button
-                    key={user.id}
-                    onClick={() => setViewingLive(user)}
-                    className="w-full bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                    onClick={() => toggleInterested(post.id)}
+                    className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-pink-500 px-5 py-2.5 rounded-full text-white text-sm font-black shadow-lg shadow-red-500/40 hover:scale-95 active:scale-90 transition-transform relative overflow-hidden"
                   >
-                    <div className="aspect-video bg-gradient-to-br from-purple-100 to-pink-100 relative">
-                      <div className="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-                        <div className="w-2 h-2 bg-white rounded-full" />
-                        EN VIVO
-                      </div>
-                      <div className="absolute bottom-3 left-3 bg-black/60 text-white px-2 py-1 rounded-lg text-xs flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {Math.floor(Math.random() * 100) + 50}
-                      </div>
-                    </div>
-                    <div className="p-3 flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold">
-                        {user.username[0].toUpperCase()}
-                      </div>
-                      <div className="flex-1 text-left">
-                        <p className="font-semibold text-gray-800">{user.username}</p>
-                        <p className="text-xs text-gray-500">{user.name}</p>
-                      </div>
-                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/15 to-transparent rounded-full" />
+                    <span className="text-base relative z-10">{interestedPosts.has(post.id) ? '❤️' : '🤍'}</span>
+                    <span className="relative z-10">Lo Quiero</span>
                   </button>
-                ))}
-              </div>
-            </div>
-          )}
+                </div>
+              </article>
+            ))}
+          </div>
           
-          {/* Mensaje si no sigue a nadie */}
-          {following.length === 0 && (
+          {/* Mensaje si no sigue a nadie - solo si no hay posts */}
+          {livePosts.length === 0 && following.length === 0 && (
             <div className="p-4">
-              <div className="bg-white rounded-2xl p-8 text-center">
-                <Search className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                <h3 className="text-lg font-bold text-gray-800 mb-2">¡Descubre vendedores!</h3>
-                <p className="text-gray-600 text-sm mb-4">Busca y sigue vendedores para ver sus lives y stories</p>
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 text-center">
+                <Search className="w-16 h-16 mx-auto mb-4 text-gray-600" />
+                <h3 className="text-lg font-bold text-white mb-2">¡Descubre vendedores!</h3>
+                <p className="text-gray-400 text-sm mb-4">Busca y sigue vendedores para ver sus lives y stories</p>
                 <button
                   onClick={() => setActiveTab('search')}
-                  className="bg-purple-500 text-white px-6 py-3 rounded-xl font-medium"
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-xl font-medium shadow-lg"
                 >
                   Explorar
                 </button>
@@ -624,12 +797,12 @@ const LiveShoppingApp = () => {
           )}
           
           {/* Bottom Navigation */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-bottom">
+          <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/10 safe-bottom">
             <div className="grid grid-cols-4 gap-1 p-2">
               <button
                 onClick={() => setActiveTab('home')}
-                className={`py-3 rounded-xl flex flex-col items-center gap-1 ${
-                  activeTab === 'home' ? 'text-purple-500' : 'text-gray-400'
+                className={`py-3 rounded-xl flex flex-col items-center gap-1 transition-colors ${
+                  activeTab === 'home' ? 'text-pink-500' : 'text-gray-500'
                 }`}
               >
                 <Home className="w-6 h-6" />
@@ -637,8 +810,8 @@ const LiveShoppingApp = () => {
               </button>
               <button
                 onClick={() => setActiveTab('search')}
-                className={`py-3 rounded-xl flex flex-col items-center gap-1 ${
-                  activeTab === 'search' ? 'text-purple-500' : 'text-gray-400'
+                className={`py-3 rounded-xl flex flex-col items-center gap-1 transition-colors ${
+                  activeTab === 'search' ? 'text-pink-500' : 'text-gray-500'
                 }`}
               >
                 <Search className="w-6 h-6" />
@@ -646,8 +819,8 @@ const LiveShoppingApp = () => {
               </button>
               <button
                 onClick={() => setActiveTab('notifications')}
-                className={`py-3 rounded-xl flex flex-col items-center gap-1 relative ${
-                  activeTab === 'notifications' ? 'text-purple-500' : 'text-gray-400'
+                className={`py-3 rounded-xl flex flex-col items-center gap-1 relative transition-colors ${
+                  activeTab === 'notifications' ? 'text-pink-500' : 'text-gray-500'
                 }`}
               >
                 <Bell className="w-6 h-6" />
@@ -658,8 +831,8 @@ const LiveShoppingApp = () => {
               </button>
               <button
                 onClick={() => setActiveTab('profile')}
-                className={`py-3 rounded-xl flex flex-col items-center gap-1 ${
-                  activeTab === 'profile' ? 'text-purple-500' : 'text-gray-400'
+                className={`py-3 rounded-xl flex flex-col items-center gap-1 transition-colors ${
+                  activeTab === 'profile' ? 'text-pink-500' : 'text-gray-500'
                 }`}
               >
                 <User className="w-6 h-6" />
@@ -677,6 +850,88 @@ const LiveShoppingApp = () => {
         user.type === 'seller' && 
         (user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
          user.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      
+      return (
+        <div className="min-h-screen bg-black pb-20">
+          {/* Header con búsqueda */}
+          <div className="bg-black/80 backdrop-blur-xl border-b border-white/10 sticky top-0 z-10 p-4">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar vendedores..."
+                className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 text-white placeholder-gray-500 focus:ring-2 focus:ring-pink-500 focus:bg-white/15 transition-all"
+                autoFocus
+              />
+            </div>
+          </div>
+          
+          <div className="p-4 space-y-3">
+            {filteredUsers.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-600">No se encontraron vendedores</p>
+              </div>
+            ) : (
+              filteredUsers.map(user => (
+                <div key={user.id} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center justify-between hover:bg-white/10 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-lg ${
+                      user.stories.length > 0 
+                        ? 'bg-gradient-to-br from-purple-500 via-pink-500 to-red-500 p-[2px]' 
+                        : 'bg-gradient-to-br from-gray-700 to-gray-800'
+                    }`}>
+                      <div className={`w-full h-full rounded-full flex items-center justify-center ${
+                        user.stories.length > 0 ? 'bg-gray-900' : ''
+                      }`}>
+                        {user.username[0].toUpperCase()}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">{user.username}</p>
+                      <p className="text-sm text-gray-400">{user.name}</p>
+                      <p className="text-xs text-gray-500">{user.followers.toLocaleString()} seguidores</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => toggleFollow(user.id)}
+                    className={`px-5 py-2 rounded-xl font-medium transition-all ${
+                      user.isFollowing
+                        ? 'bg-white/10 text-white border border-white/20'
+                        : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                    }`}
+                  >
+                    {user.isFollowing ? 'Siguiendo' : 'Seguir'}
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+          
+          {/* Bottom Navigation */}
+          <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/10 safe-bottom">
+            <div className="grid grid-cols-4 gap-1 p-2">
+              <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
+                <Home className="w-6 h-6" />
+                <span className="text-xs font-medium">Inicio</span>
+              </button>
+              <button onClick={() => setActiveTab('search')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-pink-500">
+                <Search className="w-6 h-6" />
+                <span className="text-xs font-medium">Buscar</span>
+              </button>
+              <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
+                <Bell className="w-6 h-6" />
+                <span className="text-xs font-medium">Alertas</span>
+              </button>
+              <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
+                <User className="w-6 h-6" />
+                <span className="text-xs font-medium">Perfil</span>
+              </button>
+            </div>
+          </div>
+        </div>
       );
       
       return (
@@ -765,57 +1020,57 @@ const LiveShoppingApp = () => {
     // Tab Profile
     if (activeTab === 'profile') {
       return (
-        <div className="min-h-screen bg-gray-50 pb-20">
-          <div className="bg-white border-b p-6">
+        <div className="min-h-screen bg-black pb-20">
+          <div className="bg-black/80 backdrop-blur-xl border-b border-white/10 p-6">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-2xl">
+              <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg">
                 {currentUser?.username[0].toUpperCase()}
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-800">{currentUser?.username}</h2>
-                <p className="text-gray-600">{currentUser?.name}</p>
+                <h2 className="text-xl font-bold text-white">{currentUser?.username}</h2>
+                <p className="text-gray-400">{currentUser?.name}</p>
               </div>
             </div>
             
-            <div className="grid grid-cols-3 gap-4 py-4 border-t">
+            <div className="grid grid-cols-3 gap-4 py-4 border-t border-white/10">
               <div className="text-center">
-                <p className="text-2xl font-bold text-gray-800">{following.length}</p>
-                <p className="text-sm text-gray-600">Siguiendo</p>
+                <p className="text-2xl font-bold text-white">{following.length}</p>
+                <p className="text-sm text-gray-400">Siguiendo</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-gray-800">{reservations.length}</p>
-                <p className="text-sm text-gray-600">Compras</p>
+                <p className="text-2xl font-bold text-white">{reservations.length}</p>
+                <p className="text-sm text-gray-400">Compras</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-gray-800">0</p>
-                <p className="text-sm text-gray-600">Guardados</p>
+                <p className="text-2xl font-bold text-white">0</p>
+                <p className="text-sm text-gray-400">Guardados</p>
               </div>
             </div>
             
             <button
               onClick={() => setIsRegistered(false)}
-              className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              className="w-full bg-white/10 backdrop-blur-sm border border-white/20 text-white py-3 rounded-xl font-medium hover:bg-white/15 transition-colors"
             >
               Cerrar Sesión
             </button>
           </div>
           
           {/* Bottom Navigation */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-bottom">
+          <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/10 safe-bottom">
             <div className="grid grid-cols-4 gap-1 p-2">
-              <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
+              <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
                 <Home className="w-6 h-6" />
                 <span className="text-xs font-medium">Inicio</span>
               </button>
-              <button onClick={() => setActiveTab('search')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
+              <button onClick={() => setActiveTab('search')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
                 <Search className="w-6 h-6" />
                 <span className="text-xs font-medium">Buscar</span>
               </button>
-              <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
+              <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
                 <Bell className="w-6 h-6" />
                 <span className="text-xs font-medium">Alertas</span>
               </button>
-              <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-purple-500">
+              <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-pink-500">
                 <User className="w-6 h-6" />
                 <span className="text-xs font-medium">Perfil</span>
               </button>
@@ -830,9 +1085,9 @@ const LiveShoppingApp = () => {
   if (userType === 'seller') {
     if (activeTab === 'home') {
       return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-black pb-20">
           {/* Header */}
-          <div className="bg-white border-b">
+          <div className="bg-black/80 backdrop-blur-xl border-b border-white/10">
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
