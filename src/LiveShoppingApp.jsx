@@ -9,6 +9,7 @@ const LiveShoppingApp = () => {
     // Función para manejar login/registro desde Auth
     const handleAuth = (user) => {
       setCurrentUser(user);
+      setUserType(user.type);
       setIsRegistered(true);
     };
   const [activeTab, setActiveTab] = useState('home'); // 'home', 'search', 'notifications', 'profile'
@@ -326,7 +327,12 @@ const LiveShoppingApp = () => {
               <div className="w-20 h-20 bg-white rounded-full mx-auto mb-4 flex items-center justify-center shadow-xl">
                 <ShoppingCart className="w-10 h-10 text-purple-500" />
               </div>
-              <h1 className="text-3xl font-bold text-white mb-2">ShopLive</h1>
+              <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-1.5">
+                <span className="bg-gradient-to-r from-red-500 to-pink-500 px-3 py-1 rounded-lg text-white font-bold uppercase tracking-wider transform -skew-x-6 shadow-lg" style={{ fontFamily: "'Arial Black', sans-serif" }}>
+                  LIVE
+                </span>
+                <span className="italic" style={{ fontFamily: "'Playfair Display', serif" }}>ShoppingRD</span>
+              </h1>
               <p className="text-purple-100">Compra y vende en vivo</p>
             </div>
             
@@ -528,7 +534,12 @@ const LiveShoppingApp = () => {
           <div className="bg-white border-b sticky top-0 z-10">
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold text-gray-800">ShopLive</h1>
+                <h1 className="text-2xl font-bold flex items-center gap-1">
+                  <span className="bg-gradient-to-r from-red-500 to-pink-500 px-2.5 py-0.5 rounded-lg text-white font-bold uppercase tracking-wider transform -skew-x-6 shadow-lg text-base" style={{ fontFamily: "'Arial Black', sans-serif" }}>
+                    LIVE
+                  </span>
+                  <span className="text-gray-800 italic" style={{ fontFamily: "'Playfair Display', serif" }}>ShoppingRD</span>
+                </h1>
                 <Bell className="w-6 h-6 text-gray-600" />
               </div>
               

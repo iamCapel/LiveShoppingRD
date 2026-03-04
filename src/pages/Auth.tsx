@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import logo from '../assets/liveshopping-logo.png';
+import neonBg from '../assets/neon-background.jpg';
 import { FaGoogle, FaFacebookF, FaPhone } from 'react-icons/fa';
 
 interface AuthProps {
-  onAuth: (user: { email: string; name: string }) => void;
+  onAuth: (user: { email: string; name: string; username: string; type: string }) => void;
 }
 
 const Auth: React.FC<AuthProps> = ({ onAuth }) => {
@@ -17,6 +18,20 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Efecto 3D de movimiento del fondo
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const x = (e.clientX / window.innerWidth - 0.5) * 20;
+      const y = (e.clientY / window.innerHeight - 0.5) * 20;
+      setMousePosition({ x, y });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   const validate = () => {
     if (!email.match(/^\S+@\S+\.\S+$/)) return 'Correo inválido';
@@ -41,7 +56,12 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
     setTimeout(() => {
       setLoading(false);
       setSuccess(isLogin ? '¡Sesión iniciada!' : '¡Cuenta creada exitosamente!');
-      onAuth({ email, name: isLogin ? 'Usuario' : name });
+      onAuth({ 
+        email, 
+        name: isLogin ? 'Usuario' : name,
+        username: isLogin ? email.split('@')[0] : username,
+        type: userType || 'buyer'
+      });
       setEmail('');
       setPassword('');
       setName('');
@@ -49,25 +69,46 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
+    <div ref={containerRef} className="relative flex flex-col items-center justify-center min-h-screen overflow-hidden">
+      {/* Fondo de neón con efecto 3D */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center transition-transform duration-300 ease-out"
+        style={{
+          backgroundImage: `url(${neonBg})`,
+          transform: `translate(${mousePosition.x}px, ${mousePosition.y}px) scale(1.1)`,
+          filter: 'brightness(0.7)',
+        }}
+      />
+      
+      {/* Overlay oscuro para mejor legibilidad */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      
+      {/* Contenido del formulario */}
+      <div className="relative z-10 bg-white/5 backdrop-blur-md p-8 w-full max-w-md">
         <div className="flex flex-col items-center mb-6">
-          <img src={logo} alt="LiveShoppingRD Logo" className="w-24 h-24 mb-2" />
-          <span className="text-lg font-semibold text-gray-700">LiveShoppingRD</span>
+          <div className="bg-white/10 backdrop-blur-sm p-4 rounded-full mb-2">
+            <img src={logo} alt="LiveShoppingRD Logo" className="w-20 h-20" />
+          </div>
+          <h1 className="text-3xl font-bold text-white drop-shadow-lg flex items-center gap-1">
+            <span className="bg-gradient-to-r from-red-500 to-pink-500 px-3 py-1 rounded-lg text-white font-bold uppercase tracking-wider transform -skew-x-6 shadow-lg" style={{ fontFamily: "'Arial Black', sans-serif" }}>
+              LIVE
+            </span>
+            <span className="italic" style={{ fontFamily: "'Playfair Display', serif" }}>ShoppingRD</span>
+          </h1>
         </div>
-        <h2 className="text-2xl font-bold mb-6 text-center">
+        <h2 className="text-3xl font-bold mb-6 text-center text-white drop-shadow-lg">
           {isLogin ? 'Iniciar sesión' : 'Crear cuenta'}
         </h2>
         {/* Botones de registro social */}
         <div className="flex justify-center gap-4 mb-4">
-          <button type="button" className="bg-white border border-gray-300 rounded-full p-3 shadow hover:bg-gray-100 transition">
-            <FaGoogle className="w-5 h-5 text-red-500" />
+          <button type="button" className="bg-white/10 backdrop-blur-sm rounded-full p-3 hover:bg-white/20 transition-all hover:scale-110">
+            <FaGoogle className="w-5 h-5 text-white drop-shadow" />
           </button>
-          <button type="button" className="bg-white border border-gray-300 rounded-full p-3 shadow hover:bg-gray-100 transition">
-            <FaPhone className="w-5 h-5 text-green-500" />
+          <button type="button" className="bg-white/10 backdrop-blur-sm rounded-full p-3 hover:bg-white/20 transition-all hover:scale-110">
+            <FaPhone className="w-5 h-5 text-white drop-shadow" />
           </button>
-          <button type="button" className="bg-white border border-gray-300 rounded-full p-3 shadow hover:bg-gray-100 transition">
-            <FaFacebookF className="w-5 h-5 text-blue-600" />
+          <button type="button" className="bg-white/10 backdrop-blur-sm rounded-full p-3 hover:bg-white/20 transition-all hover:scale-110">
+            <FaFacebookF className="w-5 h-5 text-white drop-shadow" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -78,7 +119,7 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
                 placeholder="Nombre completo"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
                 required
               />
               <input
@@ -86,25 +127,25 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
                 placeholder="Nombre de usuario"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
                 required
               />
               <select
                 value={userType}
                 onChange={e => setUserType(e.target.value)}
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
                 required
               >
-                <option value="">¿Vas a vender o comprar?</option>
-                <option value="seller">Vender</option>
-                <option value="buyer">Comprar</option>
+                <option value="" className="bg-gray-800">¿Vas a vender o comprar?</option>
+                <option value="seller" className="bg-gray-800">Vender</option>
+                <option value="buyer" className="bg-gray-800">Comprar</option>
               </select>
               <input
                 type="tel"
                 placeholder="Número de teléfono"
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
                 required
               />
             </>
@@ -114,7 +155,7 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
             placeholder="Correo electrónico"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            className="w-full px-3 py-2 border rounded"
+            className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
             required
           />
           <input
@@ -122,25 +163,25 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
             placeholder="Contraseña"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            className="w-full px-3 py-2 border rounded"
+            className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
             required
           />
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition flex items-center justify-center"
+            className="w-full bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-white py-3 rounded-lg hover:from-pink-600 hover:via-purple-600 hover:to-blue-600 transition-all hover:scale-105 flex items-center justify-center font-semibold"
             disabled={loading}
           >
             {loading ? (
-              <span className="animate-spin mr-2 h-5 w-5 border-2 border-white border-t-blue-600 rounded-full inline-block"></span>
+              <span className="animate-spin mr-2 h-5 w-5 border-2 border-white border-t-transparent rounded-full inline-block"></span>
             ) : null}
             {isLogin ? 'Entrar' : 'Crear cuenta'}
           </button>
         </form>
-        {error && <div className="mt-2 text-red-600 text-center text-sm">{error}</div>}
-        {success && <div className="mt-2 text-green-600 text-center text-sm">{success}</div>}
+        {error && <div className="mt-2 text-red-300 bg-red-500/20 backdrop-blur-sm rounded-lg p-2 text-center text-sm">{error}</div>}
+        {success && <div className="mt-2 text-green-300 bg-green-500/20 backdrop-blur-sm rounded-lg p-2 text-center text-sm">{success}</div>}
         <div className="mt-4 text-center">
           <button
-            className="text-blue-600 hover:underline"
+            className="text-white hover:text-pink-300 transition-colors font-medium drop-shadow"
             onClick={() => {
               setIsLogin(!isLogin);
               setError('');
