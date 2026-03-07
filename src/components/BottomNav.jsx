@@ -164,19 +164,23 @@ export default function BottomNav({ activeTab, onTabChange, urgentLive, onLiveSe
           left: 0;
           right: 0;
           z-index: 50;
+          width: 100%;
+          max-width: 100vw;
         }
 
         /* ── BAR ── */
         .bn-bar {
           width: 100%;
+          max-width: 100vw;
           background: rgba(14, 13, 22, 0.97);
           backdrop-filter: blur(20px);
           border-top: 1px solid rgba(255,255,255,0.06);
           display: flex;
           align-items: flex-end;
           justify-content: space-around;
-          padding: 8px 6px 20px;
+          padding: 8px 6px calc(env(safe-area-inset-bottom, 0px) + 12px);
           position: relative;
+          box-sizing: border-box;
         }
 
         /* ── NORMAL TAB ── */

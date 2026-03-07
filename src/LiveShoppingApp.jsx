@@ -994,8 +994,8 @@ const LiveShoppingApp = () => {
     const currentStory = currentStoryUser.stories[currentStoryIndex];
     
     return (
-      <div className="fixed inset-0 bg-black z-50">
-        <div className="h-full flex items-center justify-center">
+      <div className="fixed inset-0 bg-black z-50 w-full h-full overflow-hidden">
+        <div className="h-full w-full flex items-center justify-center">
           <button
             onClick={() => setShowStoryViewer(false)}
             className="absolute top-4 right-4 text-white z-20 bg-black/30 p-2 rounded-full"
@@ -1004,9 +1004,9 @@ const LiveShoppingApp = () => {
           </button>
           
           {/* Barras de progreso */}
-          <div className="absolute top-4 left-4 right-4 flex gap-1 z-20">
+          <div className="absolute top-4 left-4 right-4 flex gap-1 z-20 max-w-full px-4">
             {currentStoryUser.stories.map((_, idx) => (
-              <div key={idx} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+              <div key={idx} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden min-w-0">
                 <div 
                   className={`h-full bg-white transition-all duration-300 ${
                     idx === currentStoryIndex ? 'w-full' : idx < currentStoryIndex ? 'w-full' : 'w-0'
@@ -1049,11 +1049,11 @@ const LiveShoppingApp = () => {
   // MODAL AGREGAR STORY
   if (showAddStory) {
     return (
-      <div className="fixed inset-0 bg-black/90 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-        <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[85vh] overflow-y-auto">
-          <div className="sticky top-0 bg-white p-6 pb-4 border-b">
+      <div className="fixed inset-0 bg-black/90 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 w-full h-full overflow-hidden">
+        <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-full sm:max-w-md max-h-[85vh] overflow-y-auto">
+          <div className="sticky top-0 bg-white p-4 sm:p-6 pb-4 border-b">
             <div className="flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-800">Nueva Story</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800">Nueva Story</h3>
               <button onClick={() => setShowAddStory(false)} className="text-gray-400">
                 <X className="w-6 h-6" />
               </button>
@@ -1278,16 +1278,16 @@ const LiveShoppingApp = () => {
       const followedWithStories = following.filter(u => u.stories && u.stories.length > 0);
       
       return (
-        <div className="min-h-screen bg-black pb-20">
+        <div className="min-h-screen w-full bg-black pb-20 overflow-x-hidden">
           {/* Notificación flotante de live urgente - visible durante 1 hora */}
           {urgentLive && !isLive && !isPreLive && (
-            <div className="fixed top-4 left-4 right-4 z-50 animate-fade-in">
-              <div className="bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl p-4 shadow-2xl border-2 border-white">
+            <div className="fixed top-4 left-4 right-4 z-50 animate-fade-in max-w-full px-2">
+              <div className="bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl p-3 sm:p-4 shadow-2xl border-2 border-white">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                    <Bell className="w-7 h-7 text-red-500 animate-pulse" />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full flex items-center justify-center flex-shrink-0">
+                    <Bell className="w-6 h-6 sm:w-7 sm:h-7 text-red-500 animate-pulse" />
                   </div>
-                  <div className="flex-1 text-white">
+                  <div className="flex-1 text-white min-w-0">
                     <p className="font-bold text-lg">¡Es hora de transmitir!</p>
                     <p className="text-sm opacity-90">
                       {urgentLive.countdown <= 0 && urgentLive.countdown > -3600
@@ -1322,21 +1322,21 @@ const LiveShoppingApp = () => {
               
               {/* Stories */}
               {followedWithStories.length > 0 && (
-                <div className="flex gap-4 overflow-x-auto pb-3 -mx-4 px-4 scrollbar-hide">
+                <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-3 -mx-4 px-4 scrollbar-hide">
                   {followedWithStories.map(user => (
                     <button
                       key={user.id}
                       onClick={() => viewStories(user)}
                       className="flex-shrink-0 flex flex-col items-center gap-2"
                     >
-                      <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-red-500 p-[3px]">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-red-500 p-[3px]">
                         <div className="w-full h-full bg-black rounded-full p-[3px]">
-                          <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-full flex items-center justify-center text-white font-bold text-lg border-2 border-gray-700">
+                          <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-lg border-2 border-gray-700">
                             {user.username[0].toUpperCase()}
                           </div>
                         </div>
                       </div>
-                      <span className="text-xs text-gray-300 max-w-[72px] truncate">{user.username}</span>
+                      <span className="text-xs text-gray-300 max-w-[60px] sm:max-w-[72px] truncate">{user.username}</span>
                     </button>
                   ))}
                 </div>
@@ -1345,9 +1345,9 @@ const LiveShoppingApp = () => {
           </div>
           
           {/* Posts de LiveSell */}
-          <div className="space-y-0">
+          <div className="space-y-0 w-full overflow-x-hidden">
             {livePosts.map(post => (
-              <article key={post.id} className="border-b border-white/10">
+              <article key={post.id} className="border-b border-white/10 w-full">
                 {/* Header del post */}
                 <div className="flex items-center gap-3 p-4 pb-3">
                   <div className="w-12 h-12 rounded-full p-[2.5px] bg-gradient-to-tr from-red-500 to-orange-500 shadow-lg shadow-red-500/30 flex-shrink-0">
@@ -1372,7 +1372,7 @@ const LiveShoppingApp = () => {
                 </div>
                 
                 {/* Carousel de imágenes */}
-                <div className="relative bg-gray-900 aspect-square">
+                <div className="relative bg-gray-900 aspect-square w-full overflow-hidden">
                   <div className="absolute inset-0 overflow-hidden">
                     <div 
                       className="flex h-full transition-transform duration-300 ease-out"
@@ -1380,7 +1380,7 @@ const LiveShoppingApp = () => {
                     >
                       {post.images.map((img, idx) => (
                         <div key={idx} className="w-full h-full flex-shrink-0 relative">
-                          <img src={img} alt="" className="w-full h-full object-cover" />
+                          <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
                           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30 pointer-events-none" />
                         </div>
                       ))}
@@ -1481,23 +1481,23 @@ const LiveShoppingApp = () => {
       );
       
       return (
-        <div className="min-h-screen bg-black pb-20">
+        <div className="min-h-screen w-full bg-black pb-20 overflow-x-hidden">
           {/* Header con búsqueda */}
-          <div className="bg-black/80 backdrop-blur-xl border-b border-white/10 sticky top-0 z-10 p-4">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+          <div className="bg-black/80 backdrop-blur-xl border-b border-white/10 sticky top-0 z-10 p-3 sm:p-4 w-full">
+            <div className="relative max-w-full">
+              <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar vendedores..."
-                className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 text-white placeholder-gray-500 focus:ring-2 focus:ring-pink-500 focus:bg-white/15 transition-all"
+                className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 text-white placeholder-gray-500 focus:ring-2 focus:ring-pink-500 focus:bg-white/15 transition-all text-sm sm:text-base"
                 autoFocus
               />
             </div>
           </div>
           
-          <div className="p-4 space-y-3">
+          <div className="p-3 sm:p-4 space-y-3 w-full overflow-x-hidden">
             {filteredUsers.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-600">No se encontraron vendedores</p>
@@ -1549,11 +1549,11 @@ const LiveShoppingApp = () => {
       );
       
       return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen w-full bg-gray-50 pb-20 overflow-x-hidden">
           {/* Header con búsqueda */}
-          <div className="bg-white border-b sticky top-0 z-10 p-4">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <div className="bg-white border-b sticky top-0 z-10 p-3 sm:p-4 w-full">
+            <div className="relative max-w-full">
+              <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
               <input
                 type="text"
                 value={searchQuery}
@@ -1620,16 +1620,16 @@ const LiveShoppingApp = () => {
     // Tab Promote - Promocionar piezas
     if (activeTab === 'promote') {
       return (
-        <div className="min-h-screen bg-black pb-20">
+        <div className="min-h-screen w-full bg-black pb-20 overflow-x-hidden">
           {/* Header */}
-          <div className="bg-black/80 backdrop-blur-xl border-b border-white/10 sticky top-0 z-10 p-4">
+          <div className="bg-black/80 backdrop-blur-xl border-b border-white/10 sticky top-0 z-10 p-3 sm:p-4 w-full">
             <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold text-white">Promocionar Piezas</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-white">Promocionar Piezas</h1>
               <button
                 onClick={() => setActiveTab('home')}
                 className="text-gray-400 hover:text-white transition-colors"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
           </div>
@@ -1930,20 +1930,20 @@ const LiveShoppingApp = () => {
       }).slice(0, 10);
 
       return (
-        <div className="min-h-screen bg-black pb-20">
+        <div className="min-h-screen w-full bg-black pb-20 overflow-x-hidden">
           {/* Header */}
-          <div className="bg-black/80 backdrop-blur-xl border-b border-white/10 sticky top-0 z-10 p-4">
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Bell className="w-7 h-7 text-pink-500" />
+          <div className="bg-black/80 backdrop-blur-xl border-b border-white/10 sticky top-0 z-10 p-3 sm:p-4 w-full">
+            <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+              <Bell className="w-6 h-6 sm:w-7 sm:h-7 text-pink-500" />
               Alertas
             </h1>
           </div>
 
-          <div className="p-4 space-y-6">
+          <div className="p-3 sm:p-4 space-y-6 w-full overflow-x-hidden">
             {/* Mis Lives Programados */}
-            <div className="space-y-3">
-              <h2 className="text-white font-bold text-lg flex items-center gap-2">
-                <Clock className="w-5 h-5 text-pink-500" />
+            <div className="space-y-3 w-full">
+              <h2 className="text-white font-bold text-base sm:text-lg flex items-center gap-2">
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />
                 Mis Lives Programados
               </h2>
               
@@ -2109,20 +2109,20 @@ const LiveShoppingApp = () => {
     // Tab Profile
     if (activeTab === 'profile') {
       return (
-        <div className="min-h-screen bg-black pb-20">
-          <div className="bg-black/80 backdrop-blur-xl border-b border-white/10 p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+        <div className="min-h-screen w-full bg-black pb-20 overflow-x-hidden">
+          <div className="bg-black/80 backdrop-blur-xl border-b border-white/10 p-4 sm:p-6 w-full">
+            <div className="flex items-center gap-3 sm:gap-4 mb-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-xl sm:text-2xl shadow-lg flex-shrink-0">
                 {currentUser?.username[0].toUpperCase()}
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">{currentUser?.username}</h2>
-                <p className="text-gray-400">{currentUser?.name}</p>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg sm:text-xl font-bold text-white truncate">{currentUser?.username}</h2>
+                <p className="text-sm sm:text-base text-gray-400 truncate">{currentUser?.name}</p>
               </div>
             </div>
             
-            <div className="grid grid-cols-3 gap-4 py-4 border-t border-white/10">
-              <div className="text-center">
+            <div className="grid grid-cols-3 gap-3 sm:gap-4 py-4 border-t border-white/10">
+              <div className="text-center min-w-0">
                 <p className="text-2xl font-bold text-white">{following.length}</p>
                 <p className="text-sm text-gray-400">Siguiendo</p>
               </div>
@@ -2235,7 +2235,7 @@ const LiveShoppingApp = () => {
   // Vista de preparación para LiveSell
   if (showLiveSellPrep) {
     return (
-      <div className="fixed inset-0 z-50 bg-black">
+      <div className="fixed inset-0 z-50 bg-black w-full h-full overflow-hidden">
         {/* Video preview full screen */}
         <video
           ref={videoRef}
@@ -2246,7 +2246,7 @@ const LiveShoppingApp = () => {
         />
         
         {/* Overlay con controles */}
-        <div className="absolute inset-0 flex flex-col">
+        <div className="absolute inset-0 flex flex-col w-full h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
             <button
