@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 // ── LS Logo SVG (fiel a la imagen: trazos fluidos superpuestos) ──────────────
-function LSLogo({ size = 28, color = "currentColor", glowColor = null }) {
+function LSLogo({ size = 22, color = "currentColor", glowColor = null }) {
   return (
     <svg width={size} height={size * 0.72} viewBox="0 0 120 86" fill="none" xmlns="http://www.w3.org/2000/svg"
-      style={glowColor ? { filter: `drop-shadow(0 0 6px ${glowColor})` } : {}}>
+      style={glowColor ? { filter: `drop-shadow(0 0 4px ${glowColor})` } : {}}>
       {/* L stroke - outer */}
       <path d="M8 6 L8 68 L52 68" stroke={color} strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.35"/>
       {/* L stroke - middle */}
@@ -254,25 +254,27 @@ export default function BottomNav({ activeTab, onTabChange, urgentLive, onLiveSe
         /* ── CENTER BUTTON ── */
         .bn-center-btn {
           position: relative;
-          width: 70px;
-          height: 70px;
-          border-radius: 50%;
+          width: auto;
+          height: auto;
+          border-radius: 0;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          cursor: grab;
+          cursor: pointer;
           user-select: none;
           -webkit-tap-highlight-color: transparent;
-          margin-bottom: 4px;
+          margin-bottom: 0;
+          padding: 4px 0;
           transition: transform 0.3s;
           touch-action: none;
           overflow: visible;
         }
         .bn-center-btn:active { cursor: grabbing; }
 
-        /* ring */
+        /* ring - OCULTO */
         .bn-center-ring {
+          display: none;
           position: absolute;
           inset: -3px;
           border-radius: 50%;
@@ -280,8 +282,9 @@ export default function BottomNav({ activeTab, onTabChange, urgentLive, onLiveSe
           transition: border-color 0.3s;
         }
 
-        /* bg fill */
+        /* bg fill - OCULTO */
         .bn-center-bg {
+          display: none;
           position: absolute;
           inset: 0;
           border-radius: 50%;
@@ -310,21 +313,22 @@ export default function BottomNav({ activeTab, onTabChange, urgentLive, onLiveSe
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 3px;
+          gap: 4px;
           transition: transform 0.26s cubic-bezier(0.34,1.3,0.64,1), opacity 0.2s;
         }
         .bn-center-content.exit-left  { transform: translateX(-36px); opacity: 0; }
         .bn-center-content.exit-right { transform: translateX(36px); opacity: 0; }
         .bn-center-label {
-          font-size: 9px;
-          font-weight: 700;
-          letter-spacing: 0.6px;
+          font-size: 10px;
+          font-weight: 500;
+          letter-spacing: 0.2px;
           line-height: 1;
           transition: color 0.3s;
         }
 
-        /* live pulse ring */
+        /* live pulse ring - OCULTO */
         .bn-live-pulse {
+          display: none;
           position: absolute;
           inset: -3px;
           border-radius: 50%;

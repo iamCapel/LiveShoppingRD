@@ -1371,16 +1371,49 @@ const LiveShoppingApp = () => {
                   </div>
                 </div>
                 
-                {/* Carousel de imágenes */}
+                {/* Carousel de imágenes con swipe */}
                 <div className="relative bg-gray-900 w-full overflow-hidden">
                   <div className="relative aspect-square overflow-hidden">
                     <div 
-                      className="flex h-full transition-transform duration-300 ease-out"
+                      className="flex h-full transition-transform duration-300 ease-out touch-pan-y"
                       style={{ transform: `translateX(-${post.currentSlide * 100}%)` }}
+                      onTouchStart={(e) => {
+                        const touch = e.touches[0];
+                        e.currentTarget.dataset.startX = touch.clientX;
+                        e.currentTarget.dataset.startY = touch.clientY;
+                      }}
+                      onTouchMove={(e) => {
+                        const touch = e.touches[0];
+                        const startX = parseFloat(e.currentTarget.dataset.startX);
+                        const startY = parseFloat(e.currentTarget.dataset.startY);
+                        const diffX = touch.clientX - startX;
+                        const diffY = touch.clientY - startY;
+                        
+                        // Solo permitir swipe horizontal si el movimiento es más horizontal que vertical
+                        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onTouchEnd={(e) => {
+                        const touch = e.changedTouches[0];
+                        const startX = parseFloat(e.currentTarget.dataset.startX);
+                        const diffX = touch.clientX - startX;
+                        
+                        // Swipe threshold de 50px
+                        if (Math.abs(diffX) > 50) {
+                          if (diffX > 0) {
+                            // Swipe right - anterior
+                            prevSlide(post.id);
+                          } else {
+                            // Swipe left - siguiente
+                            nextSlide(post.id);
+                          }
+                        }
+                      }}
                     >
                       {post.images.map((img, idx) => (
                         <div key={idx} className="w-full h-full flex-shrink-0 relative">
-                          <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
+                          <img src={img} alt="" className="w-full h-full object-cover pointer-events-none" loading="lazy" />
                           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30 pointer-events-none" />
                         </div>
                       ))}
@@ -1399,24 +1432,6 @@ const LiveShoppingApp = () => {
                         />
                       ))}
                     </div>
-                    
-                    {/* Flechas de navegación */}
-                    {post.images.length > 1 && (
-                      <>
-                        <button
-                          onClick={() => prevSlide(post.id)}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white flex items-center justify-center hover:bg-black/70 transition-all z-10"
-                        >
-                          ‹
-                        </button>
-                        <button
-                          onClick={() => nextSlide(post.id)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white flex items-center justify-center hover:bg-black/70 transition-all z-10"
-                        >
-                          ›
-                        </button>
-                      </>
-                    )}
                   </div>
 
                   {/* Botón "Lo Quiero" integrado */}
