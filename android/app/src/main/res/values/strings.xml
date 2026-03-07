@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LiveShopping RD</string>
+    <string name="title_activity_main">LiveShopping RD</string>
+    <string name="package_name">com.liveshopping.rd</string>
+    <string name="custom_url_scheme">com.liveshopping.rd</string>
+</resources>

@@ -1,25 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Auth from './pages/Auth';
+import LiveStreamWindow from './pages/LiveStreamWindow';
+import BottomNav from './components/BottomNav';
 import { Camera, DollarSign, Gavel, Users, Bell, ShoppingCart, Video, Play, Pause, X, Search, UserPlus, UserCheck, Plus, PlusCircle, Home, User, Heart, Send, Clock, TrendingUp, Image } from 'lucide-react';
 
 const LiveShoppingApp = () => {
   // Estados principales
   const [currentUser, setCurrentUser] = useState(null);
   const [isRegistered, setIsRegistered] = useState(false);
-    // Función para manejar login/registro desde Auth
-    const handleAuth = (user) => {
-      setCurrentUser(user);
-      setUserType(user.type);
-      setIsRegistered(true);
-    };
   const [activeTab, setActiveTab] = useState('home'); // 'home', 'search', 'notifications', 'profile'
   const [userType, setUserType] = useState(null);
-  const [regUsername, setRegUsername] = useState('');
-  const [regName, setRegName] = useState('');
-  const [regType, setRegType] = useState('');
   
   // Estados de transmisión
   const [isLive, setIsLive] = useState(false);
+  const [isPreLive, setIsPreLive] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
   const [saleType, setSaleType] = useState('fixed');
   const [price, setPrice] = useState('');
@@ -31,6 +25,14 @@ const LiveShoppingApp = () => {
   const [auctionTime, setAuctionTime] = useState(10);
   const [auctionActive, setAuctionActive] = useState(false);
   const [highestBidder, setHighestBidder] = useState(null);
+  
+  // Sistema de suscripción y límites
+  const [isPremium, setIsPremium] = useState(false);
+  const [livesUsed, setLivesUsed] = useState(0);
+  const [liveStartTime, setLiveStartTime] = useState(null);
+  const [liveTimeRemaining, setLiveTimeRemaining] = useState(3600); // 1 hora = 3600 segundos
+  const FREE_LIVES_LIMIT = 3;
+  const FREE_LIVE_DURATION = 3600; // 1 hora en segundos
   
   // Sistema de usuarios y social
   const [allUsers, setAllUsers] = useState([
@@ -133,6 +135,9 @@ const LiveShoppingApp = () => {
   const [promoteLiveDate, setPromoteLiveDate] = useState('');
   const [editingPiece, setEditingPiece] = useState(null); // Pieza que se está editando
   const [showPieceEditor, setShowPieceEditor] = useState(false);
+  const [showCameraCapture, setShowCameraCapture] = useState(false); // Interfaz de captura estilo Snapchat
+  const [showLiveSellPrep, setShowLiveSellPrep] = useState(false); // Vista de preparación de LiveSell
+  const [returnToLiveSellPrep, setReturnToLiveSellPrep] = useState(false); // Flag para volver a LiveSellPrep después de capturar
   
   // Estados para transmisión en vivo
   const [currentLivePost, setCurrentLivePost] = useState(null); // Post que se está transmitiendo
@@ -150,6 +155,63 @@ const LiveShoppingApp = () => {
   const storyInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+  const captureVideoRef = useRef(null); // Video para captura de fotos
+  const captureStreamRef = useRef(null); // Stream para captura de fotos
+
+  // Cargar contador de lives desde localStorage al iniciar
+  useEffect(() => {
+    const savedLivesUsed = localStorage.getItem('livesUsed');
+    const savedIsPremium = localStorage.getItem('isPremium');
+    
+    if (savedLivesUsed) {
+      setLivesUsed(parseInt(savedLivesUsed, 10));
+    }
+    if (savedIsPremium === 'true') {
+      setIsPremium(true);
+    }
+  }, []);
+  
+  // Guardar contador de lives en localStorage cuando cambie
+  useEffect(() => {
+    localStorage.setItem('livesUsed', livesUsed.toString());
+  }, [livesUsed]);
+  
+  // Guardar estado premium en localStorage cuando cambie
+  useEffect(() => {
+    localStorage.setItem('isPremium', isPremium.toString());
+  }, [isPremium]);
+
+  // Abrir cámara cuando se activa preparación de LiveSell
+  useEffect(() => {
+    if (showLiveSellPrep) {
+      const openCamera = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'user' }, 
+            audio: true 
+          });
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            streamRef.current = stream;
+          }
+        } catch (err) {
+          console.error('Error al acceder a la cámara:', err);
+          alert('No se pudo acceder a la cámara. Por favor, verifica los permisos.');
+          setShowLiveSellPrep(false);
+        }
+      };
+      openCamera();
+    } else {
+      // Cerrar cámara cuando se desactiva LiveSellPrep
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+    }
+  }, [showLiveSellPrep]);
 
   // Simular usuarios conectados
   useEffect(() => {
@@ -161,35 +223,92 @@ const LiveShoppingApp = () => {
     }
   }, [isLive]);
   
-  // Countdown para posts
+  // Contador de tiempo del live (1 hora para usuarios gratuitos)
+  useEffect(() => {
+    if (isLive && !isPremium) {
+      const interval = setInterval(() => {
+        setLiveTimeRemaining(prev => {
+          // Alerta cuando quedan 5 minutos
+          if (prev === 300) {
+            alert('⏰ Quedan 5 minutos de transmisión. Prepárate para cerrar tu live.');
+          }
+          
+          if (prev <= 1) {
+            clearInterval(interval);
+            // Terminar live automáticamente
+            alert('⏱️ Tu hora de transmisión ha terminado. ¡Suscríbete para lives sin límite!');
+            stopLiveStream();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isLive, isPremium]);
+  
+  // Countdown para posts (permite contar hasta -3600 para ventana de 1 hora)
   useEffect(() => {
     const interval = setInterval(() => {
-      setLivePosts(prev => prev.map(post => ({
-        ...post,
-        countdown: Math.max(0, post.countdown - 1)
-      })));
+      setLivePosts(prev => prev.map(post => {
+        const newCountdown = post.countdown - 1;
+        // Permitir que cuente negativo hasta -3600 (1 hora)
+        // pero no menos que eso para evitar números muy negativos
+        return {
+          ...post,
+          countdown: Math.max(-3600, newCountdown)
+        };
+      }));
     }, 1000);
     return () => clearInterval(interval);
   }, []);
   
-  // Auto-eliminar posts cuando llega la hora del live
+  // Auto-eliminar posts 1 hora después de que llegue la hora programada (excepto si está transmitiendo)
   useEffect(() => {
     const interval = setInterval(() => {
       setLivePosts(prev => {
         const now = Date.now();
-        // Filtrar posts cuyo tiempo programado ya pasó
+        // Filtrar posts cuyo tiempo programado ya pasó MÁS de 1 hora
         return prev.filter(post => {
-          if (post.scheduledTime && now >= post.scheduledTime) {
-            // Mostrar notificación de que el live comenzó
-            console.log(`🔴 El live de ${post.username} ha comenzado!`);
-            return false; // Eliminar el post
+          // No eliminar el post del usuario actual si está en pre-transmisión o transmitiendo
+          if (post.username === currentUser?.username && (isPreLive || isLive)) {
+            return true; // Mantener el post
           }
+          
+          // Mantener el post del usuario actual durante 1 hora después de la hora programada
+          if (post.username === currentUser?.username && post.scheduledTime) {
+            const oneHourAfterScheduled = post.scheduledTime + (3600 * 1000); // 1 hora en milisegundos
+            if (now < oneHourAfterScheduled) {
+              return true; // Mantener el post durante 1 hora
+            }
+          }
+          
+          // Eliminar posts de otros usuarios cuando llega su hora
+          if (post.scheduledTime && now >= post.scheduledTime) {
+            // Solo si no es el usuario actual
+            if (post.username !== currentUser?.username) {
+              console.log(`🔴 El live de ${post.username} ha comenzado!`);
+              return false; // Eliminar el post
+            }
+          }
+          
           return true; // Mantener el post
         });
       });
     }, 5000); // Revisar cada 5 segundos
     return () => clearInterval(interval);
-  }, []);
+  }, [currentUser, isPreLive, isLive]);
+  
+  // ====================================================================
+  // FUNCIONES HELPER
+  // ====================================================================
+  
+  // Función para manejar login/registro desde Auth
+  const handleAuth = (user) => {
+    setCurrentUser(user);
+    setUserType(user.type);
+    setIsRegistered(true);
+  };
   
   const formatCountdown = (seconds) => {
     if (seconds <= 0) return '00:00';
@@ -237,11 +356,6 @@ const LiveShoppingApp = () => {
       return post;
     }));
   };
-  
-  // Mostrar la página de autenticación si no está registrado
-  if (!isRegistered) {
-    return <Auth onAuth={handleAuth} />;
-  }
 
   const registerUser = (username, name, type) => {
     const newUser = {
@@ -382,6 +496,96 @@ const LiveShoppingApp = () => {
     ));
     setShowPieceEditor(false);
     setEditingPiece(null);
+    
+    // Si venimos de LiveSellPrep, volver a esa vista
+    if (returnToLiveSellPrep) {
+      setShowLiveSellPrep(true);
+      setReturnToLiveSellPrep(false);
+    }
+  };
+
+  // Funciones para captura de fotos estilo Snapchat
+  const openCameraCapture = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1080 } }, 
+        audio: false 
+      });
+      if (captureVideoRef.current) {
+        captureVideoRef.current.srcObject = stream;
+        captureStreamRef.current = stream;
+      }
+      setShowCameraCapture(true);
+    } catch (err) {
+      console.error('Error al acceder a la cámara:', err);
+      
+      let mensaje = '🎥 No se pudo acceder a la cámara\n\n';
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        mensaje += '❌ Permiso denegado\n\n';
+        mensaje += '📋 Solución:\n';
+        mensaje += '1. Haz clic en el ícono del candado/cámara en la barra de direcciones\n';
+        mensaje += '2. Permite el acceso a la cámara\n';
+        mensaje += '3. Recarga la página e intenta de nuevo';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        mensaje += '❌ No se encontró ninguna cámara\n\n';
+        mensaje += '📋 Verifica que tu dispositivo tenga una cámara instalada';
+      } else {
+        mensaje += '❌ Error desconocido\n\n';
+        mensaje += '📋 Verifica los permisos de la cámara en tu navegador';
+      }
+      
+      alert(mensaje);
+    }
+  };
+
+  const capturePhoto = () => {
+    const video = captureVideoRef.current;
+    const canvas = document.createElement('canvas');
+    
+    if (!video) return;
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    
+    const imageUrl = canvas.toDataURL('image/jpeg', 0.95);
+    
+    // Crear nueva pieza con la foto capturada
+    const newPiece = {
+      id: Date.now() + Math.random(),
+      url: imageUrl,
+      source: 'camera',
+      description: '',
+      minPrice: ''
+    };
+    
+    setPromoteImages(prev => [...prev, newPiece]);
+    
+    // Cerrar la cámara
+    closeCameraCapture();
+    
+    // Abrir editor para agregar descripción y precio
+    setEditingPiece(newPiece);
+    setShowPieceEditor(true);
+  };
+
+  const closeCameraCapture = () => {
+    if (captureStreamRef.current) {
+      captureStreamRef.current.getTracks().forEach(track => track.stop());
+      captureStreamRef.current = null;
+    }
+    if (captureVideoRef.current) {
+      captureVideoRef.current.srcObject = null;
+    }
+    setShowCameraCapture(false);
+    
+    // Si venimos de LiveSellPrep, volver a esa vista
+    if (returnToLiveSellPrep) {
+      setShowLiveSellPrep(true);
+      setReturnToLiveSellPrep(false);
+    }
   };
 
   const cancelPieceEdit = () => {
@@ -391,6 +595,12 @@ const LiveShoppingApp = () => {
     }
     setShowPieceEditor(false);
     setEditingPiece(null);
+    
+    // Si venimos de LiveSellPrep, volver a esa vista
+    if (returnToLiveSellPrep) {
+      setShowLiveSellPrep(true);
+      setReturnToLiveSellPrep(false);
+    }
   };
 
   const getMinDateTime = () => {
@@ -457,12 +667,18 @@ const LiveShoppingApp = () => {
     alert('¡Publicación creada exitosamente! 🎉');
   };
 
-  const startLiveStream = async () => {
-    // Buscar el post programado del usuario actual
-    const myPost = livePosts.find(post => post.username === currentUser?.username && post.countdown > 0);
+  const startPreLive = async () => {
+    // Validar límite de lives gratuitos
+    if (!isPremium && livesUsed >= FREE_LIVES_LIMIT) {
+      alert(`🚫 Has alcanzado el límite de ${FREE_LIVES_LIMIT} lives gratuitos. ¡Suscríbete para lives ilimitados!`);
+      return;
+    }
+    
+    // Buscar el post programado del usuario actual que ya llegó a 0
+    const myPost = livePosts.find(post => post.username === currentUser?.username && post.countdown <= 0);
     
     if (!myPost) {
-      alert('No tienes lives programados para transmitir');
+      alert('Aún no es hora de transmitir');
       return;
     }
     
@@ -488,16 +704,68 @@ const LiveShoppingApp = () => {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
       }
-      setIsLive(true);
+      setIsPreLive(true); // Activar PRE-transmisión
       setActiveTab('home'); // Cambiar al tab principal
-      
-      if (currentUser) {
-        setAllUsers(prev => prev.map(user => 
-          user.id === currentUser.id ? { ...user, isLive: true } : user
-        ));
-      }
     } catch (err) {
-      alert('No se pudo acceder a la cámara');
+      console.error('Error al acceder a la cámara:', err);
+      
+      let mensaje = '🎥 No se pudo acceder a la cámara\n\n';
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        mensaje += '❌ Permiso denegado\n\n';
+        mensaje += '📋 Solución:\n';
+        mensaje += '1. Haz clic en el ícono del candado/cámara en la barra de direcciones\n';
+        mensaje += '2. Permite el acceso a la cámara y micrófono\n';
+        mensaje += '3. Recarga la página e intenta de nuevo';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        mensaje += '❌ No se encontró ninguna cámara\n\n';
+        mensaje += '📋 Verifica que:\n';
+        mensaje += '• Tu dispositivo tenga una cámara instalada\n';
+        mensaje += '• La cámara esté conectada correctamente\n';
+        mensaje += '• Los drivers estén actualizados';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        mensaje += '❌ La cámara está siendo usada por otra aplicación\n\n';
+        mensaje += '📋 Solución:\n';
+        mensaje += '• Cierra otras aplicaciones que usen la cámara\n';
+        mensaje += '• Cierra otras pestañas del navegador que puedan estar usándola\n';
+        mensaje += '• Reinicia el navegador';
+      } else if (err.name === 'OverconstrainedError' || err.name === 'ConstraintNotSatisfiedError') {
+        mensaje += '❌ Tu cámara no cumple con los requisitos\n\n';
+        mensaje += '📋 Intenta usar una cámara diferente';
+      } else if (err.name === 'TypeError') {
+        mensaje += '❌ Error de configuración\n\n';
+        mensaje += '📋 Solución:\n';
+        mensaje += '• Asegúrate de estar usando un navegador moderno\n';
+        mensaje += '• Intenta con Chrome, Firefox o Edge actualizado';
+      } else {
+        mensaje += `❌ Error: ${err.name || 'Desconocido'}\n\n`;
+        mensaje += '📋 Solución:\n';
+        mensaje += '• Verifica los permisos de la cámara en tu navegador\n';
+        mensaje += '• Asegúrate de estar en una conexión segura (https o localhost)\n';
+        mensaje += '• Intenta con otro navegador\n';
+        mensaje += '• Reinicia tu dispositivo si el problema persiste';
+      }
+      
+      alert(mensaje);
+    }
+  };
+
+  const startLiveStream = () => {
+    // Iniciar transmisión real desde la pre-transmisión
+    setIsPreLive(false);
+    setIsLive(true);
+    setLiveStartTime(Date.now());
+    setLiveTimeRemaining(FREE_LIVE_DURATION); // Reset a 1 hora
+    
+    // Incrementar contador de lives usados (solo para usuarios gratuitos)
+    if (!isPremium) {
+      setLivesUsed(prev => prev + 1);
+    }
+    
+    if (currentUser) {
+      setAllUsers(prev => prev.map(user => 
+        user.id === currentUser.id ? { ...user, isLive: true } : user
+      ));
     }
   };
 
@@ -505,7 +773,16 @@ const LiveShoppingApp = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
+    
+    // Eliminar el post del live que acaba de terminar
+    if (currentLivePost && currentUser) {
+      setLivePosts(prev => prev.filter(post => 
+        !(post.username === currentUser.username && post.id === currentLivePost.id)
+      ));
+    }
+    
     setIsLive(false);
+    setIsPreLive(false);
     setCurrentItem(null);
     setCurrentLivePost(null);
     setCurrentPieceIndex(null);
@@ -513,6 +790,8 @@ const LiveShoppingApp = () => {
     setCurrentBids([]);
     setPieceStatus(null);
     setSoldPieces([]);
+    setLiveStartTime(null);
+    setLiveTimeRemaining(FREE_LIVE_DURATION);
     
     if (currentUser) {
       setAllUsers(prev => prev.map(user => 
@@ -701,96 +980,13 @@ const LiveShoppingApp = () => {
     alert('¡Reserva realizada! 🎉');
   };
 
-  // PANTALLA DE REGISTRO
+  // ====================================================================
+  // LÓGICA DE RENDERIZADO
+  // ====================================================================
+
+  // Mostrar pantalla de autenticación si no está registrado
   if (!isRegistered) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-purple-500 to-pink-500 flex flex-col">
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="w-full max-w-sm">
-            <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-white rounded-full mx-auto mb-4 flex items-center justify-center shadow-xl">
-                <ShoppingCart className="w-10 h-10 text-purple-500" />
-              </div>
-              <h1 className="text-3xl font-bold text-white mb-2 flex items-center justify-center gap-1.5">
-                <span className="bg-gradient-to-r from-red-500 to-pink-500 px-3 py-1 rounded-lg text-white font-bold uppercase tracking-wider transform -skew-x-6 shadow-lg" style={{ fontFamily: "'Arial Black', sans-serif" }}>
-                  LIVE
-                </span>
-                <span className="italic" style={{ fontFamily: "'Playfair Display', serif" }}>ShoppingRD</span>
-              </h1>
-              <p className="text-purple-100">Compra y vende en vivo</p>
-            </div>
-            
-            <div className="bg-white rounded-3xl shadow-2xl p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Usuario</label>
-                <input
-                  type="text"
-                  value={regUsername}
-                  onChange={(e) => setRegUsername(e.target.value)}
-                  placeholder="@tunombre"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
-                <input
-                  type="text"
-                  value={regName}
-                  onChange={(e) => setRegName(e.target.value)}
-                  placeholder="Tu nombre completo"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Tipo de cuenta</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setRegType('seller')}
-                    className={`py-4 rounded-xl font-medium transition-all ${
-                      regType === 'seller' 
-                        ? 'bg-purple-500 text-white shadow-lg scale-105' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    <Video className="w-6 h-6 mx-auto mb-1" />
-                    <span className="text-sm">Vendedor</span>
-                  </button>
-                  <button
-                    onClick={() => setRegType('buyer')}
-                    className={`py-4 rounded-xl font-medium transition-all ${
-                      regType === 'buyer' 
-                        ? 'bg-pink-500 text-white shadow-lg scale-105' 
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    <ShoppingCart className="w-6 h-6 mx-auto mb-1" />
-                    <span className="text-sm">Comprador</span>
-                  </button>
-                </div>
-              </div>
-              
-              <button
-                onClick={() => {
-                  if (!regUsername || !regName || !regType) {
-                    alert('Completa todos los campos');
-                    return;
-                  }
-                  registerUser(regUsername, regName, regType);
-                  setRegUsername('');
-                  setRegName('');
-                  setRegType('');
-                }}
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
-              >
-                Comenzar
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <Auth onAuth={handleAuth} />;
   }
 
   // VISOR DE STORIES
@@ -905,14 +1101,176 @@ const LiveShoppingApp = () => {
     );
   }
 
-  // VISTA PRINCIPAL - COMPRADOR
-  if (userType === 'buyer') {
-    // Verificar si hay lives urgentes programados
-    const urgentLive = livePosts.find(post => 
-      post.username === currentUser?.username && 
-      post.countdown > 0 && 
-      post.countdown <= 300 // 5 minutos
+  // ══════════════════════════════════════════════════════════
+  // PÁGINA DE PRE-TRANSMISIÓN
+  // ══════════════════════════════════════════════════════════
+  if (isPreLive && currentLivePost) {
+    return (
+      <div className="fixed inset-0 bg-black z-50 overflow-hidden">
+        {/* Video de vista previa */}
+        <div className="absolute inset-0">
+          <video 
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/90" />
+        </div>
+
+        {/* Contenido */}
+        <div className="absolute inset-0 flex flex-col items-center justify-between p-6 z-10">
+          {/* Header */}
+          <div className="w-full max-w-md">
+            <div className="bg-black/60 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                  {currentUser?.username[0].toUpperCase()}
+                </div>
+                <div className="flex-1">
+                  <p className="text-white font-bold text-lg">{currentUser?.username}</p>
+                  <p className="text-gray-300 text-sm">{currentLivePost.description}</p>
+                </div>
+              </div>
+              
+              <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-xl p-3 mb-3">
+                <p className="text-yellow-400 text-sm flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Prepárate para iniciar tu transmisión en vivo
+                </p>
+              </div>
+              
+              {/* Información de límites */}
+              {!isPremium && (
+                <div className="bg-purple-500/20 border border-purple-500/40 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-purple-300 text-xs font-semibold">Lives gratuitos:</span>
+                    <span className="text-white font-bold text-sm">
+                      {FREE_LIVES_LIMIT - livesUsed} de {FREE_LIVES_LIMIT} restantes
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-purple-300 text-xs font-semibold">Duración:</span>
+                    <span className="text-white font-bold text-sm">1 hora máximo</span>
+                  </div>
+                  {livesUsed >= FREE_LIVES_LIMIT - 1 && (
+                    <p className="text-yellow-400 text-xs pt-2 border-t border-purple-500/30">
+                      ⚠️ Este es tu último live gratuito
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {isPremium && (
+                <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/40 rounded-xl p-3">
+                  <p className="text-yellow-400 text-sm font-bold flex items-center gap-2">
+                    👑 Premium: Lives ilimitados sin restricciones
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Centro - Resumen de piezas */}
+          <div className="w-full max-w-md">
+            <div className="bg-black/60 backdrop-blur-md rounded-2xl p-5 border border-white/20">
+              <h3 className="text-white font-bold text-xl mb-4 flex items-center gap-2">
+                <ShoppingCart className="w-6 h-6 text-pink-500" />
+                Tus Piezas
+              </h3>
+              
+              <div className="space-y-3 max-h-64 overflow-y-auto scrollbar-hide">
+                {currentLivePost.pieces.map((piece, index) => (
+                  <div 
+                    key={index}
+                    className="bg-white/10 rounded-xl p-3 flex items-center gap-3 border border-white/10"
+                  >
+                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-900 flex-shrink-0">
+                      <img 
+                        src={piece.url} 
+                        alt={piece.description}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-white font-semibold text-sm line-clamp-1">{piece.description}</p>
+                      <p className="text-pink-400 font-bold text-sm">RD${piece.minPrice}</p>
+                    </div>
+                    <div className="bg-purple-500 rounded-full px-3 py-1">
+                      <span className="text-white text-xs font-bold">#{index + 1}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <p className="text-gray-400 text-sm text-center">
+                  {currentLivePost.pieces.length} pieza{currentLivePost.pieces.length !== 1 ? 's' : ''} lista{currentLivePost.pieces.length !== 1 ? 's' : ''} para vender
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Botones de acción */}
+          <div className="w-full max-w-md space-y-3">
+            {/* Botón principal - Iniciar Live */}
+            <button
+              onClick={startLiveStream}
+              className="w-full bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 text-white py-5 rounded-2xl font-black text-xl shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-3 animate-pulse"
+            >
+              <Video className="w-7 h-7" />
+              INICIAR TRANSMISIÓN EN VIVO
+            </button>
+
+            {/* Botón secundario - Cancelar */}
+            <button
+              onClick={stopLiveStream}
+              className="w-full bg-gray-700/80 backdrop-blur-md border border-white/20 text-white py-4 rounded-2xl font-semibold hover:bg-gray-600/80 transition-all"
+            >
+              Cancelar
+            </button>
+
+            {/* Indicador */}
+            <div className="bg-black/40 backdrop-blur-md rounded-xl p-3 border border-white/10">
+              <p className="text-gray-400 text-xs text-center">
+                📹 Tu cámara está lista • Verifica que todo se vea bien antes de iniciar
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Canvas oculto */}
+        <canvas ref={canvasRef} className="hidden" />
+      </div>
     );
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // INTERFAZ DE TRANSMISIÓN EN VIVO
+  // ══════════════════════════════════════════════════════════
+  if (isLive && currentLivePost) {
+    return (
+      <LiveStreamWindow 
+        videoRef={videoRef}
+        livePost={currentLivePost}
+        viewers={viewers}
+        liveTimeRemaining={liveTimeRemaining}
+        onEndLive={stopLiveStream}
+      />
+    );
+  }
+
+  // Verificar si hay lives urgentes programados (para todos los tipos de usuario)
+  // Notificación vigente por 1 hora desde que countdown llegó a 0
+  const urgentLive = livePosts.find(post => 
+    post.username === currentUser?.username && 
+    post.countdown <= 0 && // Cuando llega a 0
+    post.countdown >= -3600 // Vigente por 1 hora (-3600 segundos)
+  );
+
+  // VISTA PRINCIPAL - TODOS LOS USUARIOS
+  if (userType === 'buyer' || userType === 'seller') {
 
     // Tab Home - Feed principal
     if (activeTab === 'home') {
@@ -921,8 +1279,8 @@ const LiveShoppingApp = () => {
       
       return (
         <div className="min-h-screen bg-black pb-20">
-          {/* Notificación flotante de live urgente */}
-          {urgentLive && !isLive && (
+          {/* Notificación flotante de live urgente - visible durante 1 hora */}
+          {urgentLive && !isLive && !isPreLive && (
             <div className="fixed top-4 left-4 right-4 z-50 animate-fade-in">
               <div className="bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl p-4 shadow-2xl border-2 border-white">
                 <div className="flex items-center gap-3">
@@ -931,10 +1289,15 @@ const LiveShoppingApp = () => {
                   </div>
                   <div className="flex-1 text-white">
                     <p className="font-bold text-lg">¡Es hora de transmitir!</p>
-                    <p className="text-sm opacity-90">Tu live comienza en {Math.floor(urgentLive.countdown / 60)}m {urgentLive.countdown % 60}s</p>
+                    <p className="text-sm opacity-90">
+                      {urgentLive.countdown <= 0 && urgentLive.countdown > -3600
+                        ? `Ventana disponible: ${Math.floor(Math.abs(urgentLive.countdown) / 60)}m ${Math.abs(urgentLive.countdown) % 60}s restantes`
+                        : 'Tu live programado ya está listo'
+                      }
+                    </p>
                   </div>
                   <button
-                    onClick={startLiveStream}
+                    onClick={startPreLive}
                     className="bg-white text-red-500 px-6 py-3 rounded-xl font-bold shadow-lg hover:scale-105 transition-transform"
                   >
                     Comenzar
@@ -1099,58 +1462,12 @@ const LiveShoppingApp = () => {
           )}
           
           {/* Bottom Navigation */}
-          <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/10 safe-bottom">
-            <div className="grid grid-cols-5 gap-1 p-2">
-              <button
-                onClick={() => setActiveTab('home')}
-                className={`py-3 rounded-xl flex flex-col items-center gap-1 transition-colors ${
-                  activeTab === 'home' ? 'text-pink-500' : 'text-gray-500'
-                }`}
-              >
-                <Home className="w-6 h-6" />
-                <span className="text-xs font-medium">Inicio</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('search')}
-                className={`py-3 rounded-xl flex flex-col items-center gap-1 transition-colors ${
-                  activeTab === 'search' ? 'text-pink-500' : 'text-gray-500'
-                }`}
-              >
-                <Search className="w-6 h-6" />
-                <span className="text-xs font-medium">Buscar</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('promote')}
-                className={`py-3 rounded-xl flex flex-col items-center gap-1 transition-colors ${
-                  activeTab === 'promote' ? 'text-pink-500' : 'text-gray-500'
-                }`}
-              >
-                <PlusCircle className="w-6 h-6" />
-                <span className="text-xs font-medium">Promocionar</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('notifications')}
-                className={`py-3 rounded-xl flex flex-col items-center gap-1 relative transition-colors ${
-                  activeTab === 'notifications' ? 'text-pink-500' : 'text-gray-500'
-                }`}
-              >
-                <Bell className="w-6 h-6" />
-                {notifications.length > 0 && (
-                  <div className="absolute top-2 right-1/4 w-2 h-2 bg-red-500 rounded-full" />
-                )}
-                <span className="text-xs font-medium">Alertas</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('profile')}
-                className={`py-3 rounded-xl flex flex-col items-center gap-1 transition-colors ${
-                  activeTab === 'profile' ? 'text-pink-500' : 'text-gray-500'
-                }`}
-              >
-                <User className="w-6 h-6" />
-                <span className="text-xs font-medium">Perfil</span>
-              </button>
-            </div>
-          </div>
+          <BottomNav 
+            activeTab={activeTab} 
+            onTabChange={setActiveTab} 
+            urgentLive={urgentLive}
+            onLiveSellClick={() => setShowLiveSellPrep(true)}
+          />
         </div>
       );
     }
@@ -1222,30 +1539,12 @@ const LiveShoppingApp = () => {
           </div>
           
           {/* Bottom Navigation */}
-          <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/10 safe-bottom">
-            <div className="grid grid-cols-5 gap-1 p-2">
-              <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <Home className="w-6 h-6" />
-                <span className="text-xs font-medium">Inicio</span>
-              </button>
-              <button onClick={() => setActiveTab('search')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-pink-500">
-                <Search className="w-6 h-6" />
-                <span className="text-xs font-medium">Buscar</span>
-              </button>
-              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <PlusCircle className="w-6 h-6" />
-                <span className="text-xs font-medium">Promocionar</span>
-              </button>
-              <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <Bell className="w-6 h-6" />
-                <span className="text-xs font-medium">Alertas</span>
-              </button>
-              <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <User className="w-6 h-6" />
-                <span className="text-xs font-medium">Perfil</span>
-              </button>
-            </div>
-          </div>
+          <BottomNav 
+            activeTab={activeTab} 
+            onTabChange={setActiveTab} 
+            urgentLive={urgentLive}
+            onLiveSellClick={() => setShowLiveSellPrep(true)}
+          />
         </div>
       );
       
@@ -1308,30 +1607,12 @@ const LiveShoppingApp = () => {
           </div>
           
           {/* Bottom Navigation */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t safe-bottom">
-            <div className="grid grid-cols-5 gap-1 p-2">
-              <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
-                <Home className="w-6 h-6" />
-                <span className="text-xs font-medium">Inicio</span>
-              </button>
-              <button onClick={() => setActiveTab('search')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-purple-500">
-                <Search className="w-6 h-6" />
-                <span className="text-xs font-medium">Buscar</span>
-              </button>
-              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
-                <PlusCircle className="w-6 h-6" />
-                <span className="text-xs font-medium">Promocionar</span>
-              </button>
-              <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
-                <Bell className="w-6 h-6" />
-                <span className="text-xs font-medium">Alertas</span>
-              </button>
-              <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-400">
-                <User className="w-6 h-6" />
-                <span className="text-xs font-medium">Perfil</span>
-              </button>
-            </div>
-          </div>
+          <BottomNav 
+            activeTab={activeTab} 
+            onTabChange={setActiveTab} 
+            urgentLive={urgentLive}
+            onLiveSellClick={() => setShowLiveSellPrep(true)}
+          />
         </div>
       );
     }
@@ -1505,16 +1786,8 @@ const LiveShoppingApp = () => {
               
               {/* Botones para agregar imágenes */}
               <div className="grid grid-cols-2 gap-3">
-                <input
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(e) => handleImageSelect(e, 'camera')}
-                  className="hidden"
-                />
                 <button
-                  onClick={() => cameraInputRef.current?.click()}
+                  onClick={openCameraCapture}
                   className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg"
                 >
                   <Camera className="w-5 h-5" />
@@ -1633,39 +1906,21 @@ const LiveShoppingApp = () => {
           </div>
 
           {/* Bottom Navigation */}
-          <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/10 safe-bottom">
-            <div className="grid grid-cols-5 gap-1 p-2">
-              <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <Home className="w-6 h-6" />
-                <span className="text-xs font-medium">Inicio</span>
-              </button>
-              <button onClick={() => setActiveTab('search')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <Search className="w-6 h-6" />
-                <span className="text-xs font-medium">Buscar</span>
-              </button>
-              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-pink-500">
-                <PlusCircle className="w-6 h-6" />
-                <span className="text-xs font-medium">Promocionar</span>
-              </button>
-              <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <Bell className="w-6 h-6" />
-                <span className="text-xs font-medium">Alertas</span>
-              </button>
-              <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <User className="w-6 h-6" />
-                <span className="text-xs font-medium">Perfil</span>
-              </button>
-            </div>
-          </div>
+          <BottomNav 
+            activeTab={activeTab} 
+            onTabChange={setActiveTab} 
+            urgentLive={urgentLive}
+            onLiveSellClick={() => setShowLiveSellPrep(true)}
+          />
         </div>
       );
     }
     
     // Tab Notifications - Alertas
     if (activeTab === 'notifications') {
-      // Mis lives programados próximos
+      // Mis lives programados próximos (incluye los que tienen countdown entre 0 y -3600, es decir, 1 hora después de llegar a 0)
       const myUpcomingLives = livePosts.filter(post => {
-        return post.username === currentUser?.username && post.countdown > 0;
+        return post.username === currentUser?.username && post.countdown >= -3600; // Vigente por 1 hora después de llegar a 0
       }).sort((a, b) => a.countdown - b.countdown);
 
       // Publicaciones recientes de personas seguidas
@@ -1707,10 +1962,10 @@ const LiveShoppingApp = () => {
               ) : (
                 myUpcomingLives.map(post => {
                   const timeRemaining = post.countdown;
-                  const hours = Math.floor(timeRemaining / 3600);
-                  const minutes = Math.floor((timeRemaining % 3600) / 60);
-                  const seconds = timeRemaining % 60;
-                  const isUrgent = timeRemaining <= 300; // 5 minutos
+                  const hours = Math.floor(Math.abs(timeRemaining) / 3600);
+                  const minutes = Math.floor((Math.abs(timeRemaining) % 3600) / 60);
+                  const seconds = Math.abs(timeRemaining) % 60;
+                  const isUrgent = timeRemaining <= 0 && timeRemaining >= -3600; // Urgente durante 1 hora después de llegar a 0
 
                   return (
                     <div 
@@ -1745,7 +2000,10 @@ const LiveShoppingApp = () => {
                               isUrgent ? 'text-red-400' : 'text-pink-400'
                             } text-sm font-bold flex items-center gap-1`}>
                               <Clock className="w-4 h-4" />
-                              {hours > 0 && `${hours}h `}{minutes}m {isUrgent && `${seconds}s`}
+                              {isUrgent 
+                                ? `¡Ahora! (${hours > 0 ? `${hours}h ` : ''}${minutes}m ${seconds}s restantes)`
+                                : `${hours > 0 ? `${hours}h ` : ''}${minutes}m`
+                              }
                             </div>
                             <span className="text-gray-500 text-xs">•</span>
                             <span className="text-gray-400 text-xs">{post.interested} interesados</span>
@@ -1754,7 +2012,7 @@ const LiveShoppingApp = () => {
 
                         {isUrgent ? (
                           <button
-                            onClick={startLiveStream}
+                            onClick={startPreLive}
                             className="bg-gradient-to-r from-red-500 to-pink-500 text-white text-sm font-bold px-6 py-3 rounded-full hover:from-red-600 hover:to-pink-600 transition-all shadow-lg animate-bounce"
                           >
                             Comenzar
@@ -1838,30 +2096,12 @@ const LiveShoppingApp = () => {
           </div>
 
           {/* Bottom Navigation */}
-          <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/10 safe-bottom">
-            <div className="grid grid-cols-5 gap-1 p-2">
-              <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <Home className="w-6 h-6" />
-                <span className="text-xs font-medium">Inicio</span>
-              </button>
-              <button onClick={() => setActiveTab('search')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <Search className="w-6 h-6" />
-                <span className="text-xs font-medium">Buscar</span>
-              </button>
-              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <PlusCircle className="w-6 h-6" />
-                <span className="text-xs font-medium">Promocionar</span>
-              </button>
-              <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-pink-500">
-                <Bell className="w-6 h-6" />
-                <span className="text-xs font-medium">Alertas</span>
-              </button>
-              <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <User className="w-6 h-6" />
-                <span className="text-xs font-medium">Perfil</span>
-              </button>
-            </div>
-          </div>
+          <BottomNav 
+            activeTab={activeTab} 
+            onTabChange={setActiveTab} 
+            urgentLive={urgentLive}
+            onLiveSellClick={() => setShowLiveSellPrep(true)}
+          />
         </div>
       );
     }
@@ -1896,42 +2136,297 @@ const LiveShoppingApp = () => {
               </div>
             </div>
             
+            {/* Sección de Suscripción */}
+            {userType === 'seller' && (
+              <div className="mt-4 space-y-3">
+                {isPremium ? (
+                  <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/50 rounded-2xl p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
+                        <span className="text-2xl">👑</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-yellow-400 font-black text-lg">Premium Activo</p>
+                        <p className="text-yellow-300 text-sm">Lives ilimitados sin restricciones</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-center">
+                      <div className="bg-black/30 rounded-xl p-3">
+                        <p className="text-white text-2xl font-bold">∞</p>
+                        <p className="text-gray-300 text-xs">Lives</p>
+                      </div>
+                      <div className="bg-black/30 rounded-xl p-3">
+                        <p className="text-white text-2xl font-bold">∞</p>
+                        <p className="text-gray-300 text-xs">Horas</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-white font-bold text-lg">Plan Gratuito</p>
+                        <p className="text-gray-400 text-sm">Límite de lives y duración</p>
+                      </div>
+                      <Video className="w-8 h-8 text-gray-500" />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="bg-black/30 rounded-xl p-3 text-center">
+                        <p className="text-white text-2xl font-bold">
+                          {FREE_LIVES_LIMIT - livesUsed}
+                        </p>
+                        <p className="text-gray-300 text-xs">Lives restantes</p>
+                      </div>
+                      <div className="bg-black/30 rounded-xl p-3 text-center">
+                        <p className="text-white text-2xl font-bold">1h</p>
+                        <p className="text-gray-300 text-xs">Por live</p>
+                      </div>
+                    </div>
+                    
+                    {livesUsed >= FREE_LIVES_LIMIT && (
+                      <div className="bg-red-500/20 border border-red-500/40 rounded-xl p-3 mb-3">
+                        <p className="text-red-400 text-sm font-semibold">
+                          ⚠️ Has agotado tus lives gratuitos
+                        </p>
+                      </div>
+                    )}
+                    
+                    <button
+                      onClick={() => setIsPremium(true)}
+                      className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-3 rounded-xl font-bold hover:from-yellow-600 hover:to-orange-600 transition-all shadow-lg flex items-center justify-center gap-2"
+                    >
+                      <span className="text-xl">👑</span>
+                      Obtener Premium
+                    </button>
+                    
+                    <div className="mt-3 space-y-1">
+                      <p className="text-gray-400 text-xs text-center">Beneficios Premium:</p>
+                      <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
+                        <span>✓ Lives ilimitados</span>
+                        <span>✓ Sin límite de tiempo</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
             <button
               onClick={() => setIsRegistered(false)}
-              className="w-full bg-white/10 backdrop-blur-sm border border-white/20 text-white py-3 rounded-xl font-medium hover:bg-white/15 transition-colors"
+              className="w-full bg-white/10 backdrop-blur-sm border border-white/20 text-white py-3 rounded-xl font-medium hover:bg-white/15 transition-colors mt-4"
             >
               Cerrar Sesión
             </button>
           </div>
           
           {/* Bottom Navigation */}
-          <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-xl border-t border-white/10 safe-bottom">
-            <div className="grid grid-cols-5 gap-1 p-2">
-              <button onClick={() => setActiveTab('home')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <Home className="w-6 h-6" />
-                <span className="text-xs font-medium">Inicio</span>
-              </button>
-              <button onClick={() => setActiveTab('search')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <Search className="w-6 h-6" />
-                <span className="text-xs font-medium">Buscar</span>
-              </button>
-              <button onClick={() => setActiveTab('promote')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <PlusCircle className="w-6 h-6" />
-                <span className="text-xs font-medium">Promocionar</span>
-              </button>
-              <button onClick={() => setActiveTab('notifications')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-gray-500">
-                <Bell className="w-6 h-6" />
-                <span className="text-xs font-medium">Alertas</span>
-              </button>
-              <button onClick={() => setActiveTab('profile')} className="py-3 rounded-xl flex flex-col items-center gap-1 text-pink-500">
-                <User className="w-6 h-6" />
-                <span className="text-xs font-medium">Perfil</span>
-              </button>
-            </div>
-          </div>
+          <BottomNav 
+            activeTab={activeTab} 
+            onTabChange={setActiveTab} 
+            urgentLive={urgentLive}
+            onLiveSellClick={() => setShowLiveSellPrep(true)}
+          />
         </div>
       );
     }
+  }
+
+  // Vista de preparación para LiveSell
+  if (showLiveSellPrep) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black">
+        {/* Video preview full screen */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        
+        {/* Overlay con controles */}
+        <div className="absolute inset-0 flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
+            <button
+              onClick={() => setShowLiveSellPrep(false)}
+              className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <div className="text-white font-bold text-lg flex items-center gap-2">
+              <Video className="w-6 h-6 text-pink-500" />
+              Preparar LiveSell
+            </div>
+            <div className="w-10" /> {/* Spacer */}
+          </div>
+
+          {/* Área central con instrucciones y galería */}
+          <div className="flex-1 overflow-y-auto p-4 pb-40">
+            <div className="max-w-md mx-auto space-y-4">
+              {/* Instrucciones */}
+              <div className="bg-black/60 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+                <h2 className="text-white font-bold text-xl mb-2 flex items-center gap-2">
+                  <Camera className="w-6 h-6 text-pink-500" />
+                  Selecciona tus piezas
+                </h2>
+                <p className="text-gray-300 text-sm mb-4">
+                  Escoge las piezas que vas a mostrar en tu transmisión en vivo
+                </p>
+                
+                {/* Botones de acción */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      setReturnToLiveSellPrep(true);
+                      setShowCameraCapture(true);
+                      setShowLiveSellPrep(false);
+                    }}
+                    className="bg-pink-500 hover:bg-pink-600 text-white py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Camera className="w-5 h-5" />
+                    Tomar Foto
+                  </button>
+                  <button
+                    onClick={() => {
+                      setReturnToLiveSellPrep(true);
+                      imageInputRef.current?.click();
+                    }}
+                    className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Image className="w-5 h-5" />
+                    Galería
+                  </button>
+                </div>
+              </div>
+
+              {/* Lista de piezas agregadas */}
+              {promoteImages.length > 0 ? (
+                <div className="bg-black/60 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+                  <h3 className="text-white font-bold mb-3 flex items-center gap-2">
+                    <ShoppingCart className="w-5 h-5 text-pink-500" />
+                    Piezas seleccionadas ({promoteImages.length})
+                  </h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    {promoteImages.map((piece) => (
+                      <div key={piece.id} className="relative group">
+                        <img 
+                          src={piece.url} 
+                          alt={piece.description}
+                          className="w-full aspect-square object-cover rounded-lg border border-white/20"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                          <p className="text-white text-xs font-medium truncate">
+                            {piece.description}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-black/40 backdrop-blur-md rounded-2xl p-8 border border-white/10 border-dashed text-center">
+                  <ShoppingCart className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                  <p className="text-gray-400 text-sm">
+                    Aún no has agregado piezas
+                  </p>
+                  <p className="text-gray-500 text-xs mt-1">
+                    Agrega al menos una pieza para iniciar
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Botón de iniciar transmisión fijo en la parte inferior */}
+          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 via-black/80 to-transparent">
+            <button
+              onClick={() => {
+                if (promoteImages.length === 0) {
+                  alert('Debes agregar al menos una pieza antes de iniciar la transmisión');
+                  return;
+                }
+                // Preparar para iniciar el live
+                setShowLiveSellPrep(false);
+                startPreLive();
+              }}
+              disabled={promoteImages.length === 0}
+              className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${
+                promoteImages.length > 0
+                  ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/50 hover:shadow-xl hover:shadow-pink-500/70 hover:scale-[1.02]'
+                  : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              <Video className="w-6 h-6" />
+              {promoteImages.length > 0 
+                ? `Iniciar Live con ${promoteImages.length} pieza${promoteImages.length > 1 ? 's' : ''}`
+                : 'Agrega piezas para continuar'
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Interfaz de captura de fotos estilo Snapchat
+  if (showCameraCapture) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black">
+        {/* Video preview full screen */}
+        <video
+          ref={captureVideoRef}
+          autoPlay
+          playsInline
+          muted
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        
+        {/* Overlay con controles */}
+        <div className="absolute inset-0 flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
+            <button
+              onClick={closeCameraCapture}
+              className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <div className="text-white font-bold text-lg">
+              Capturar Pieza
+            </div>
+            <div className="w-10" /> {/* Spacer */}
+          </div>
+
+          {/* Instrucciones centrales */}
+          <div className="flex-1 flex items-center justify-center p-8">
+            <div className="bg-black/40 backdrop-blur-md rounded-2xl p-6 text-center max-w-sm">
+              <Camera className="w-12 h-12 text-white mx-auto mb-3" />
+              <p className="text-white font-semibold text-lg mb-2">
+                Captura la pieza
+              </p>
+              <p className="text-gray-300 text-sm">
+                Asegúrate de que la pieza esté bien iluminada y centrada
+              </p>
+            </div>
+          </div>
+
+          {/* Botón de captura */}
+          <div className="pb-10 flex flex-col items-center gap-4">
+            <button
+              onClick={capturePhoto}
+              className="relative w-20 h-20 rounded-full border-4 border-white flex items-center justify-center group hover:scale-105 transition-transform"
+            >
+              <div className="w-16 h-16 rounded-full bg-white group-active:scale-90 transition-transform"></div>
+            </button>
+            <p className="text-white text-sm font-medium">
+              Toca para capturar
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return <canvas ref={canvasRef} style={{ display: 'none' }} />;
