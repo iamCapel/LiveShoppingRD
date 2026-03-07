@@ -156,3 +156,22 @@ img, video {
   will-change: transform;
   backface-visibility: hidden;
 }
+
+/* Animación para el ripple effect del botón "Lo Quiero" */
+@keyframes ripple-anim {
+  to { 
+    transform: scale(4); 
+    opacity: 0; 
+  }
+}
+
+/* Animación bounce para el icono cuando se añade */
+.clicked .icon-added {
+  animation: bounce-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.15s both;
+}
+
+@keyframes bounce-in {
+  0%   { transform: scale(0) rotate(-20deg); }
+  60%  { transform: scale(1.25) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}

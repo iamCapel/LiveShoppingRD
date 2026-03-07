@@ -1372,8 +1372,8 @@ const LiveShoppingApp = () => {
                 </div>
                 
                 {/* Carousel de imágenes */}
-                <div className="relative bg-gray-900 aspect-square w-full overflow-hidden">
-                  <div className="absolute inset-0 overflow-hidden">
+                <div className="relative bg-gray-900 w-full overflow-hidden">
+                  <div className="relative aspect-square overflow-hidden">
                     <div 
                       className="flex h-full transition-transform duration-300 ease-out"
                       style={{ transform: `translateX(-${post.currentSlide * 100}%)` }}
@@ -1385,39 +1385,110 @@ const LiveShoppingApp = () => {
                         </div>
                       ))}
                     </div>
-                  </div>
                   
-                  {/* Dots  indicadores */}
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                    {post.images.map((_, idx) => (
-                      <div
-                        key={idx}
-                        className={`h-1.5 rounded-full transition-all ${
-                          idx === post.currentSlide 
-                            ? 'w-5 bg-white' 
-                            : 'w-1.5 bg-white/30'
-                        }`}
-                      />
-                    ))}
+                    {/* Dots  indicadores */}
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                      {post.images.map((_, idx) => (
+                        <div
+                          key={idx}
+                          className={`h-1.5 rounded-full transition-all ${
+                            idx === post.currentSlide 
+                              ? 'w-5 bg-white' 
+                              : 'w-1.5 bg-white/30'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    
+                    {/* Flechas de navegación */}
+                    {post.images.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => prevSlide(post.id)}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white flex items-center justify-center hover:bg-black/70 transition-all z-10"
+                        >
+                          ‹
+                        </button>
+                        <button
+                          onClick={() => nextSlide(post.id)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white flex items-center justify-center hover:bg-black/70 transition-all z-10"
+                        >
+                          ›
+                        </button>
+                      </>
+                    )}
                   </div>
-                  
-                  {/* Flechas de navegación */}
-                  {post.images.length > 1 && (
-                    <>
-                      <button
-                        onClick={() => prevSlide(post.id)}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white flex items-center justify-center hover:bg-black/70 transition-all z-10"
-                      >
-                        ‹
-                      </button>
-                      <button
-                        onClick={() => nextSlide(post.id)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-white flex items-center justify-center hover:bg-black/70 transition-all z-10"
-                      >
-                        ›
-                      </button>
-                    </>
-                  )}
+
+                  {/* Botón "Lo Quiero" integrado */}
+                  <button
+                    onClick={(e) => {
+                      const btn = e.currentTarget;
+                      if (btn.classList.contains('clicked')) return;
+                      
+                      // Ripple effect
+                      const rect = btn.getBoundingClientRect();
+                      const size = Math.max(rect.width, rect.height);
+                      const x = e.clientX - rect.left - size / 2;
+                      const y = e.clientY - rect.top - size / 2;
+                      const ripple = document.createElement('span');
+                      ripple.className = 'ripple-effect';
+                      ripple.style.cssText = `width:${size}px;height:${size}px;left:${x}px;top:${y}px;position:absolute;border-radius:50%;background:rgba(255,255,255,0.35);transform:scale(0);animation:ripple-anim 0.5s ease-out forwards;pointer-events:none`;
+                      btn.appendChild(ripple);
+                      setTimeout(() => ripple.remove(), 600);
+                      
+                      // Cambio de estado
+                      btn.classList.add('clicked');
+                      toggleInterested(post.id);
+                    }}
+                    className={`w-full border-none cursor-pointer overflow-hidden font-inherit p-0 relative h-14 transition-all duration-400 ${
+                      interestedPosts.has(post.id) 
+                        ? 'bg-gray-700 clicked' 
+                        : 'bg-gradient-to-r from-red-500 to-pink-500'
+                    }`}
+                    style={{ fontFamily: "'Bricolage Grotesque', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}
+                  >
+                    {/* Estado normal */}
+                    <span className={`absolute inset-0 flex items-center justify-center gap-2 text-white text-base font-extrabold transition-all duration-250 ${
+                      interestedPosts.has(post.id) ? 'opacity-0 scale-75' : 'opacity-100 scale-100'
+                    }`}>
+                      <svg width="22" height="22" viewBox="0 0 100 110" fill="none" className="flex-shrink-0">
+                        <rect x="10" y="30" width="80" height="70" rx="4" stroke="white" strokeWidth="7" fill="none"/>
+                        <path d="M32 30 Q32 10 50 10 Q68 10 68 30" stroke="white" strokeWidth="7" fill="none" strokeLinecap="round"/>
+                        <path d="M10 68 Q18 60 28 63 Q36 65 40 72" stroke="white" strokeWidth="4.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M10 68 Q6 75 10 80" stroke="white" strokeWidth="4.5" fill="none" strokeLinecap="round"/>
+                        <path d="M28 63 Q30 55 35 57" stroke="white" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+                        <path d="M33 62 Q35 54 40 56" stroke="white" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+                        <path d="M38 63 Q40 56 45 58" stroke="white" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+                        <path d="M90 68 Q82 60 72 63 Q64 65 60 72" stroke="white" strokeWidth="4.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M90 68 Q94 75 90 80" stroke="white" strokeWidth="4.5" fill="none" strokeLinecap="round"/>
+                        <path d="M72 63 Q70 55 65 57" stroke="white" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+                        <path d="M67 62 Q65 54 60 56" stroke="white" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+                        <path d="M62 63 Q60 56 55 58" stroke="white" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+                      </svg>
+                      ¡Lo quiero!
+                    </span>
+
+                    {/* Estado añadido */}
+                    <span className={`absolute inset-0 flex items-center justify-center gap-2 text-white/70 text-sm font-bold tracking-wide transition-all duration-300 ${
+                      interestedPosts.has(post.id) ? 'opacity-100 scale-100 delay-150' : 'opacity-0 scale-80'
+                    }`}>
+                      <svg width="22" height="22" viewBox="0 0 100 110" fill="none" className="flex-shrink-0 icon-added">
+                        <rect x="10" y="30" width="80" height="70" rx="4" stroke="rgba(255,255,255,0.6)" strokeWidth="7" fill="none"/>
+                        <path d="M32 30 Q32 10 50 10 Q68 10 68 30" stroke="rgba(255,255,255,0.6)" strokeWidth="7" fill="none" strokeLinecap="round"/>
+                        <path d="M10 68 Q18 60 28 63 Q36 65 40 72" stroke="rgba(255,255,255,0.6)" strokeWidth="4.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M10 68 Q6 75 10 80" stroke="rgba(255,255,255,0.6)" strokeWidth="4.5" fill="none" strokeLinecap="round"/>
+                        <path d="M28 63 Q30 55 35 57" stroke="rgba(255,255,255,0.6)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+                        <path d="M33 62 Q35 54 40 56" stroke="rgba(255,255,255,0.6)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+                        <path d="M38 63 Q40 56 45 58" stroke="rgba(255,255,255,0.6)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+                        <path d="M90 68 Q82 60 72 63 Q64 65 60 72" stroke="rgba(255,255,255,0.6)" strokeWidth="4.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M90 68 Q94 75 90 80" stroke="rgba(255,255,255,0.6)" strokeWidth="4.5" fill="none" strokeLinecap="round"/>
+                        <path d="M72 63 Q70 55 65 57" stroke="rgba(255,255,255,0.6)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+                        <path d="M67 62 Q65 54 60 56" stroke="rgba(255,255,255,0.6)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+                        <path d="M62 63 Q60 56 55 58" stroke="rgba(255,255,255,0.6)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+                      </svg>
+                      AGREGADO
+                    </span>
+                  </button>
                 </div>
                 
                 {/* Descripción */}
@@ -1425,20 +1496,10 @@ const LiveShoppingApp = () => {
                   <span className="font-extrabold text-white">{post.username}</span> {post.description}
                 </div>
                 
-                {/* Footer con acciones */}
-                <div className="flex items-center justify-between px-4 pb-4 gap-3">
-                  <div className="flex items-center gap-2 text-sm text-gray-600 font-semibold">
-                    <span className="text-base">🛍️</span>
-                    {post.interested} interesados
-                  </div>
-                  <button
-                    onClick={() => toggleInterested(post.id)}
-                    className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-pink-500 px-5 py-2.5 rounded-full text-white text-sm font-black shadow-lg shadow-red-500/40 hover:scale-95 active:scale-90 transition-transform relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/15 to-transparent rounded-full" />
-                    <span className="text-base relative z-10">{interestedPosts.has(post.id) ? '❤️' : '🤍'}</span>
-                    <span className="relative z-10">Lo Quiero</span>
-                  </button>
+                {/* Footer con estadísticas */}
+                <div className="flex items-center px-4 pb-4 gap-2 text-sm text-gray-400 font-semibold">
+                  <span className="text-base">🛍️</span>
+                  {post.interested} interesados
                 </div>
               </article>
             ))}
