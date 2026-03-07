@@ -1455,7 +1455,7 @@ const LiveShoppingApp = () => {
                       btn.classList.add('clicked');
                       toggleInterested(post.id);
                     }}
-                    className={`w-full border-none cursor-pointer overflow-hidden font-inherit p-0 relative h-14 transition-all duration-400 ${
+                    className={`w-full border-none cursor-pointer overflow-hidden font-inherit p-0 relative h-12 transition-all duration-400 ${
                       interestedPosts.has(post.id) 
                         ? 'bg-gray-700 clicked' 
                         : 'bg-gradient-to-r from-red-500 to-pink-500'
