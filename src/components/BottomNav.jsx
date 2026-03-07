@@ -196,6 +196,8 @@ export default function BottomNav({ activeTab, onTabChange, urgentLive, onLiveSe
           transition: transform 0.15s;
           user-select: none;
           -webkit-tap-highlight-color: transparent;
+          overflow: hidden;
+          z-index: 1;
         }
         .bn-tab:hover { transform: translateY(-2px); }
         .bn-tab-icon {
@@ -245,6 +247,8 @@ export default function BottomNav({ activeTab, onTabChange, urgentLive, onLiveSe
           align-items: flex-end;
           position: relative;
           padding-bottom: 2px;
+          overflow: hidden;
+          z-index: 10;
         }
 
         /* ── CENTER BUTTON ── */
@@ -261,9 +265,9 @@ export default function BottomNav({ activeTab, onTabChange, urgentLive, onLiveSe
           user-select: none;
           -webkit-tap-highlight-color: transparent;
           margin-bottom: 4px;
-          transition: box-shadow 0.3s;
+          transition: transform 0.3s;
           touch-action: none;
-          overflow: hidden;
+          overflow: visible;
         }
         .bn-center-btn:active { cursor: grabbing; }
 
@@ -273,7 +277,7 @@ export default function BottomNav({ activeTab, onTabChange, urgentLive, onLiveSe
           inset: -3px;
           border-radius: 50%;
           border: 2px solid transparent;
-          transition: border-color 0.3s, box-shadow 0.3s;
+          transition: border-color 0.3s;
         }
 
         /* bg fill */
@@ -284,8 +288,9 @@ export default function BottomNav({ activeTab, onTabChange, urgentLive, onLiveSe
           transition: background 0.3s;
         }
 
-        /* swipe arrows on sides */
+        /* swipe arrows on sides - OCULTAS */
         .bn-swipe-hint {
+          display: none;
           position: absolute;
           top: 50%;
           transform: translateY(-50%);
@@ -293,6 +298,7 @@ export default function BottomNav({ activeTab, onTabChange, urgentLive, onLiveSe
           color: rgba(255,255,255,0.18);
           pointer-events: none;
           transition: opacity 0.3s;
+          opacity: 0;
         }
         .bn-swipe-hint.left  { left: -18px; }
         .bn-swipe-hint.right { right: -18px; }
