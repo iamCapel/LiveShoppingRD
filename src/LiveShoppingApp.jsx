@@ -241,6 +241,50 @@ const LiveShoppingApp = () => {
     }
   }, []);
 
+  // Capturar foto directamente desde la vista de LiveSellPrep
+  const captureLiveSellPhoto = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !video.srcObject) {
+      alert('❌ La cámara no está lista. Espera un momento y vuelve a intentar.');
+      return;
+    }
+
+    // Crear canvas temporal para capturar el frame
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 1920;
+    canvas.height = video.videoHeight || 1080;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Convertir a imagen
+    const imageUrl = canvas.toDataURL('image/jpeg', 0.95);
+    
+    // Crear nueva pieza
+    const newPiece = {
+      id: Date.now() + Math.random(),
+      url: imageUrl,
+      source: 'camera',
+      description: '',
+      minPrice: ''
+    };
+    
+    setPromoteImages(prev => [...prev, newPiece]);
+    
+    // Efecto visual de flash (opcional)
+    const flashDiv = document.createElement('div');
+    flashDiv.style.cssText = `
+      position: fixed;
+      inset: 0;
+      background: white;
+      z-index: 9999;
+      animation: flash 0.3s ease;
+      pointer-events: none;
+    `;
+    document.body.appendChild(flashDiv);
+    setTimeout(() => flashDiv.remove(), 300);
+  }, []);
+
   // Limpiar cámara cuando se cierra LiveSellPrep
   useEffect(() => {
     if (!showLiveSellPrep) {
@@ -1555,11 +1599,7 @@ const LiveShoppingApp = () => {
 
           {/* Botón CAPTURAR (centro - hero) */}
           <button
-            onClick={() => {
-              setReturnToLiveSellPrep(true);
-              setShowCameraCapture(true);
-              setShowLiveSellPrep(false);
-            }}
+            onClick={captureLiveSellPhoto}
             className="w-[68px] h-[68px] rounded-full border-[3px] border-white/28 flex flex-col items-center justify-center gap-0.5 flex-shrink-0 transition-transform hover:scale-110"
             style={{
               background: 'linear-gradient(135deg, #c026d3, #ec4899, #f0467a)',
