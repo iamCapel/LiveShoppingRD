@@ -1517,7 +1517,6 @@ const LiveShoppingApp = () => {
                     onClick={() => {
                       setEditingPiece(piece);
                       setShowPieceEditor(true);
-                      setShowLiveSellPrep(false);
                     }}
                   >
                     {/* Miniatura */}
@@ -1575,6 +1574,93 @@ const LiveShoppingApp = () => {
               <p className="text-yellow-300 text-sm text-center font-medium">
                 👆 Selecciona piezas de la galería o cámara
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Editor de Pieza - Flotante sobre la vista de preparación */}
+        {showPieceEditor && editingPiece && (
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-900 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto border border-gray-700 shadow-2xl">
+              <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-4 flex items-center justify-between rounded-t-2xl">
+                <h3 className="text-white font-bold text-lg">Detalles de la Pieza</h3>
+                <button
+                  onClick={cancelPieceEdit}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="p-4 space-y-4">
+                {/* Imagen */}
+                <div className="aspect-square rounded-xl overflow-hidden bg-gray-800">
+                  <img 
+                    src={editingPiece.url} 
+                    alt="Pieza" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                {/* Descripción */}
+                <div className="space-y-2">
+                  <label className="text-white font-semibold text-sm flex items-center gap-2">
+                    <Send className="w-4 h-4" />
+                    Descripción
+                  </label>
+                  <textarea
+                    value={editingPiece.description || ''}
+                    onChange={(e) => setEditingPiece({ ...editingPiece, description: e.target.value })}
+                    placeholder="Ej: Vestido floral talla M, 100% algodón 🌸"
+                    className="w-full bg-gray-800 text-white border border-gray-600 rounded-xl p-3 min-h-[100px] focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none text-sm"
+                    maxLength={200}
+                  />
+                  <p className="text-xs text-gray-400 text-right">
+                    {(editingPiece.description || '').length}/200
+                  </p>
+                </div>
+
+                {/* Precio Mínimo */}
+                <div className="space-y-2">
+                  <label className="text-white font-semibold text-sm flex items-center gap-2">
+                    <DollarSign className="w-4 h-4" />
+                    Precio Mínimo
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">
+                      RD$
+                    </span>
+                    <input
+                      type="number"
+                      value={editingPiece.minPrice || ''}
+                      onChange={(e) => setEditingPiece({ ...editingPiece, minPrice: e.target.value })}
+                      placeholder="0.00"
+                      min="0"
+                      step="50"
+                      className="w-full bg-gray-800 text-white border border-gray-600 rounded-xl p-3 pl-14 font-semibold focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                {/* Botones */}
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={cancelPieceEdit}
+                    className="flex-1 bg-gray-700 text-white py-3 rounded-xl font-semibold hover:bg-gray-600 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => {
+                      savePieceDetails(editingPiece.id, editingPiece.description, editingPiece.minPrice);
+                    }}
+                    disabled={!(editingPiece.description || '').trim() || !editingPiece.minPrice || parseFloat(editingPiece.minPrice) <= 0}
+                    className="flex-1 bg-gradient-to-r from-pink-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-pink-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Guardar
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
