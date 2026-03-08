@@ -1445,82 +1445,54 @@ const LiveShoppingApp = () => {
 
         {/* Botón "COMENZAR" en el centro */}
         <div className="absolute inset-0 flex items-center justify-center z-10">
-          <div className="relative">
-            {/* Botón central COMENZAR */}
-            <button
-              onClick={() => {
-                if (promoteImages.length === 0) {
-                  alert('⚠️ Agrega al menos una pieza desde la galería antes de comenzar');
-                  return;
-                }
-                // Iniciar el Live
-                setShowLiveSellPrep(false);
-                startPreLive();
-              }}
-              className={`relative w-40 h-40 rounded-full flex flex-col items-center justify-center transition-all ${
-                promoteImages.length > 0
-                  ? 'bg-gradient-to-br from-pink-500 to-purple-600 shadow-2xl shadow-pink-500/50 hover:scale-105 active:scale-95'
-                  : 'bg-gray-600 cursor-not-allowed'
-              }`}
-            >
-              <Video className="w-12 h-12 text-white mb-2" />
-              <span className="text-white font-bold text-lg">COMENZAR</span>
-              {promoteImages.length > 0 && (
-                <span className="text-xs text-white/80 mt-1">{promoteImages.length} pieza{promoteImages.length > 1 ? 's' : ''}</span>
-              )}
-            </button>
-
-            {/* Botones flotantes alrededor del botón central */}
-            
-            {/* Botón: Seleccionar de Galería (arriba izquierda) */}
-            <button
-              onClick={() => {
-                setReturnToLiveSellPrep(true);
-                imageInputRef.current?.click();
-              }}
-              className="absolute -top-24 -left-24 w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 shadow-xl shadow-blue-500/50 flex flex-col items-center justify-center text-white hover:scale-110 transition-transform"
-            >
-              <Image className="w-7 h-7 mb-1" />
-              <span className="text-xs font-semibold">Galería</span>
-            </button>
-
-            {/* Botón: Tomar Foto (arriba derecha) */}
-            <button
-              onClick={() => {
-                setReturnToLiveSellPrep(true);
-                setShowCameraCapture(true);
-                setShowLiveSellPrep(false);
-              }}
-              className="absolute -top-24 -right-24 w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-xl shadow-purple-500/50 flex flex-col items-center justify-center text-white hover:scale-110 transition-transform"
-            >
-              <Camera className="w-7 h-7 mb-1" />
-              <span className="text-xs font-semibold">Cámara</span>
-            </button>
-          </div>
+          {/* Botón central COMENZAR */}
+          <button
+            onClick={() => {
+              if (promoteImages.length === 0) {
+                alert('⚠️ Agrega al menos una pieza desde la galería antes de comenzar');
+                return;
+              }
+              // Iniciar el Live
+              setShowLiveSellPrep(false);
+              startPreLive();
+            }}
+            className={`relative w-44 h-44 rounded-full flex flex-col items-center justify-center transition-all ${
+              promoteImages.length > 0
+                ? 'bg-gradient-to-br from-pink-500 to-purple-600 shadow-2xl shadow-pink-500/50 hover:scale-105 active:scale-95'
+                : 'bg-gray-600 cursor-not-allowed'
+            }`}
+          >
+            <Video className="w-14 h-14 text-white mb-2" />
+            <span className="text-white font-bold text-xl">COMENZAR</span>
+            {promoteImages.length > 0 && (
+              <span className="text-xs text-white/80 mt-1">{promoteImages.length} pieza{promoteImages.length > 1 ? 's' : ''}</span>
+            )}
+          </button>
         </div>
 
-        {/* Miniaturas de piezas seleccionadas en la parte inferior */}
+        {/* Miniaturas de piezas seleccionadas - ARRIBA de los botones */}
         {promoteImages.length > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/70 to-transparent z-20">
+          <div className="absolute bottom-32 left-0 right-0 px-4 z-20">
             <div className="max-w-md mx-auto">
-              <p className="text-white font-semibold text-sm mb-3 flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-pink-400" />
+              <p className="text-white font-semibold text-xs mb-2 flex items-center gap-2 justify-center">
+                <ShoppingCart className="w-4 h-4 text-pink-400" />
                 Piezas para el Live ({promoteImages.length})
               </p>
               
-              {/* Grid de miniaturas deslizable horizontalmente */}
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {/* Grid de miniaturas horizontal */}
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide justify-center">
                 {promoteImages.map((piece, idx) => (
                   <div
                     key={piece.id}
-                    className="relative flex-shrink-0 group"
+                    className="relative flex-shrink-0 group cursor-pointer"
                     onClick={() => {
                       setEditingPiece(piece);
                       setShowPieceEditor(true);
                     }}
+                    style={{ animation: `fadeInUp 0.3s ease ${idx * 60}ms both` }}
                   >
                     {/* Miniatura */}
-                    <div className="w-24 h-24 rounded-xl overflow-hidden border-2 border-white/30 shadow-lg">
+                    <div className="w-14 h-14 rounded-lg overflow-hidden border-2 border-pink-500/30 shadow-lg hover:border-pink-500 transition-colors">
                       <img 
                         src={piece.url} 
                         alt={piece.description || `Pieza ${idx + 1}`}
@@ -1528,50 +1500,102 @@ const LiveShoppingApp = () => {
                       />
                     </div>
                     
-                    {/* Info flotante */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent rounded-xl flex flex-col justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <p className="text-white text-xs font-bold truncate">
-                        {piece.description || 'Sin descripción'}
-                      </p>
-                      {piece.minPrice && (
-                        <p className="text-green-400 text-xs font-semibold">
-                          ${piece.minPrice}
-                        </p>
-                      )}
-                    </div>
-
                     {/* Badge de número */}
-                    <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-pink-500 text-white text-xs font-bold flex items-center justify-center shadow-lg">
+                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pink-500 text-white text-[9px] font-bold flex items-center justify-center shadow-lg">
                       {idx + 1}
                     </div>
 
-                    {/* Botón eliminar */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPromoteImages(promoteImages.filter(p => p.id !== piece.id));
-                      }}
-                      className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                    {/* Indicador de completado */}
+                    {piece.description && piece.minPrice && (
+                      <div className="absolute -bottom-1 -left-1 w-4 h-4 rounded-full bg-green-500 text-white text-[10px] flex items-center justify-center shadow-lg">
+                        ✓
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
-
-              {/* Hint */}
-              <p className="text-gray-400 text-xs mt-3 text-center">
-                Toca una pieza para editar precio y detalles
-              </p>
             </div>
           </div>
         )}
 
+        {/* BOTONES INFERIORES - Estilo ShoppingRD */}
+        <div className="absolute bottom-0 left-0 right-0 z-20 pb-6 pt-4 bg-gradient-to-t from-black via-black/90 to-transparent">
+          <div className="flex items-end justify-between px-8">
+            
+            {/* Botón GALERÍA (izquierda) */}
+            <button
+              onClick={() => {
+                setReturnToLiveSellPrep(true);
+                imageInputRef.current?.click();
+              }}
+              className="flex flex-col items-center gap-2 group"
+              style={{ minWidth: '70px' }}
+            >
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 border-2 border-blue-500/30 flex items-center justify-center text-2xl transition-all group-hover:bg-blue-500/20 group-hover:border-blue-500 group-hover:scale-110">
+                🖼️
+              </div>
+              <span className="text-[10px] font-bold text-white/50 tracking-wider uppercase">Galería</span>
+            </button>
+
+            {/* Botón CAPTURAR (centro) - Circular grande */}
+            <button
+              onClick={() => {
+                setReturnToLiveSellPrep(true);
+                setShowCameraCapture(true);
+                setShowLiveSellPrep(false);
+              }}
+              className="flex flex-col items-center gap-2 -mb-2"
+            >
+              {/* Anillo exterior */}
+              <div className="w-20 h-20 rounded-full border-[3px] border-pink-500/50 p-1 flex items-center justify-center group-hover:scale-110 transition-transform">
+                {/* Botón interior */}
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-3xl shadow-lg shadow-pink-500/50">
+                  📸
+                </div>
+              </div>
+              <span className="text-[10px] font-bold text-white/50 tracking-wider uppercase">Capturar</span>
+            </button>
+
+            {/* Botón CAPTURAS (derecha) */}
+            <button
+              onClick={() => {
+                if (promoteImages.length > 0) {
+                  setEditingPiece(promoteImages[0]);
+                  setShowPieceEditor(true);
+                }
+              }}
+              className="flex flex-col items-center gap-2 group relative"
+              style={{ minWidth: '70px' }}
+            >
+              {/* Badge contador */}
+              {promoteImages.length > 0 && (
+                <div className="absolute -top-0.5 -right-1 min-w-[18px] h-[18px] rounded-full bg-gradient-to-br from-pink-500 to-purple-600 px-1 flex items-center justify-center text-[9px] font-bold text-white shadow-lg shadow-pink-500/50 z-10">
+                  {promoteImages.length}
+                </div>
+              )}
+              
+              {/* Grid 2x2 mini */}
+              <div className="w-12 h-12 rounded-xl bg-pink-500/10 border-2 border-pink-500/30 grid grid-cols-2 gap-0.5 p-2 transition-all group-hover:bg-pink-500/20 group-hover:border-pink-500 group-hover:scale-110">
+                {[0,1,2,3].map(i => (
+                  <div 
+                    key={i} 
+                    className="rounded-sm bg-gradient-to-br from-pink-500 to-purple-600" 
+                    style={{ opacity: promoteImages.length > 0 ? 1 : 0.3 }}
+                  />
+                ))}
+              </div>
+              <span className={`text-[10px] font-bold tracking-wider uppercase ${promoteImages.length > 0 ? 'text-pink-400' : 'text-white/50'}`}>
+                Piezas
+              </span>
+            </button>
+          </div>
+        </div>
+
         {/* Mensaje si no hay piezas */}
         {promoteImages.length === 0 && (
-          <div className="absolute bottom-20 left-0 right-0 flex justify-center z-20">
-            <div className="bg-yellow-500/20 backdrop-blur-md border border-yellow-500/40 rounded-2xl py-3 px-6 mx-4">
-              <p className="text-yellow-300 text-sm text-center font-medium">
+          <div className="absolute bottom-36 left-0 right-0 flex justify-center z-20">
+            <div className="bg-yellow-500/20 backdrop-blur-md border border-yellow-500/40 rounded-2xl py-2 px-5 mx-4">
+              <p className="text-yellow-300 text-xs text-center font-medium">
                 👆 Selecciona piezas de la galería o cámara
               </p>
             </div>
