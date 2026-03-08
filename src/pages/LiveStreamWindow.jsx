@@ -170,15 +170,23 @@ export default function LiveStreamWindow({
           box-sizing: border-box;
         }
 
-        body {
+        html, body {
+          width: 100%;
+          height: 100%;
           overflow: hidden;
+          background: #000;
+        }
+
+        body {
+          display: flex;
+          justify-content: center;
+          align-items: center;
         }
 
         .phone {
           width: 100%;
-          max-width: 420px;
           height: 100vh;
-          margin: 0 auto;
+          margin: 0;
           position: relative;
           background: #1C1C1C;
           overflow-y: scroll;
@@ -471,10 +479,8 @@ export default function LiveStreamWindow({
         .bid-card-wrap {
           position: fixed;
           z-index: 20;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 100%;
-          max-width: 388px;
+          left: 0;
+          right: 0;
           bottom: 218px;
           padding: 0 16px;
         }
@@ -583,10 +589,8 @@ export default function LiveStreamWindow({
           position: fixed;
           z-index: 20;
           bottom: 0;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 100%;
-          max-width: 420px;
+          left: 0;
+          right: 0;
         }
 
         .select-pill {
@@ -662,10 +666,8 @@ export default function LiveStreamWindow({
         /* PIECES GRID */
         .pieces-scroll-container {
           position: fixed;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 100%;
-          max-width: 388px;
+          left: 0;
+          right: 0;
           bottom: 240px;
           max-height: 200px;
           overflow-y: auto;
