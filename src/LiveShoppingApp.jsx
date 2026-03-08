@@ -1590,8 +1590,36 @@ const LiveShoppingApp = () => {
                 alert('⚠️ Agrega al menos una pieza desde la galería antes de comenzar');
                 return;
               }
+              
+              // Validar que todas las piezas tengan descripción y precio
+              const incompletePieces = promoteImages.filter(p => !p.description || !p.minPrice);
+              if (incompletePieces.length > 0) {
+                alert('⚠️ Configura todas las piezas (descripción y precio) antes de transmitir');
+                return;
+              }
+              
+              // Crear un post temporal con las piezas actuales
+              const tempLivePost = {
+                id: Date.now(),
+                username: currentUser?.username || 'Usuario',
+                description: `Live con ${promoteImages.length} pieza${promoteImages.length !== 1 ? 's' : ''}`,
+                pieces: promoteImages.map((img, idx) => ({
+                  id: img.id || idx,
+                  url: img.url,
+                  description: img.description,
+                  minPrice: img.minPrice,
+                  source: img.source || 'camera'
+                })),
+                countdown: 0,
+                viewers: 1247
+              };
+              
+              // Establecer el post actual
+              setCurrentLivePost(tempLivePost);
               setShowLiveSellPrep(false);
-              startPreLive();
+              
+              // Iniciar directamente la transmisión
+              startLiveStream();
             }}
             className="px-4 py-2.5 rounded-xl flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
             style={{
