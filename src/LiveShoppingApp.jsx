@@ -192,10 +192,27 @@ const LiveShoppingApp = () => {
       const openCamera = async () => {
         console.log('🎥 Intentando abrir cámara para LiveSell...');
         
+        // Esperar a que el componente se renderice
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         // Verificar si getUserMedia está disponible
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           console.error('❌ getUserMedia no está disponible');
           alert('Tu navegador no soporta acceso a la cámara');
+          setShowLiveSellPrep(false);
+          return;
+        }
+        
+        // Verificar que videoRef existe antes de solicitar stream
+        if (!videoRef.current) {
+          console.error('❌ videoRef.current es null después del delay');
+          console.log('⏳ Esperando un poco más...');
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        
+        if (!videoRef.current) {
+          console.error('❌ videoRef.current sigue siendo null');
+          alert('Error al inicializar la vista de cámara');
           setShowLiveSellPrep(false);
           return;
         }
@@ -214,7 +231,7 @@ const LiveShoppingApp = () => {
             streamRef.current = stream;
             console.log('✅ Stream asignado al video');
           } else {
-            console.error('❌ videoRef.current es null');
+            console.error('❌ videoRef.current es null al asignar stream');
           }
         } catch (err) {
           console.error('❌ Error al acceder a la cámara:', err);
@@ -390,7 +407,13 @@ const LiveShoppingApp = () => {
     
     // Cleanup al desmontar
     return () => {
-      handleBackButton.remove();
+      handleBackButton.then(listener => {
+        if (listener && listener.remove) {
+          listener.remove();
+        }
+      }).catch(err => {
+        console.log('Error al remover listener:', err);
+      });
     };
   }, [activeTab, showLiveSellPrep, showCameraCapture, showPieceEditor, showStoryViewer, viewingLive, showAddStory]);
   
@@ -1516,16 +1539,7 @@ const LiveShoppingApp = () => {
                 </div>
                 
                 {/* Carousel de imágenes con swipe */}
-                <div 
-                  className="relative bg-gray-900 w-full overflow-hidden cursor-pointer"
-                  onClick={() => {
-                    if (post.countdown <= 0) {
-                      setViewingLive(post);
-                    } else {
-                      alert(`La transmisión comienza en ${formatCountdown(post.countdown)}`);
-                    }
-                  }}
-                >
+                <div className="relative bg-gray-900 w-full overflow-hidden">
                   <div className="relative aspect-square overflow-hidden">
                     <div 
                       className="flex h-full transition-transform duration-300 ease-out touch-pan-y"
@@ -1568,16 +1582,6 @@ const LiveShoppingApp = () => {
                         <div key={idx} className="w-full h-full flex-shrink-0 relative">
                           <img src={img} alt="" className="w-full h-full object-cover pointer-events-none" loading="lazy" />
                           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30 pointer-events-none" />
-                          
-                          {/* Indicador de "Ver Live" cuando está disponible */}
-                          {post.countdown <= 0 && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-                              <div className="bg-red-500 px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-pulse">
-                                <Video className="w-8 h-8 text-white" />
-                                <span className="text-white font-black text-2xl">VER LIVE</span>
-                              </div>
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
