@@ -2738,7 +2738,7 @@ const LiveShoppingApp = () => {
               {/* Botones para agregar imágenes */}
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={openCameraCapture}
+                  onClick={() => setShowLiveSellPrep(true)}
                   className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg"
                 >
                   <Camera className="w-5 h-5" />
