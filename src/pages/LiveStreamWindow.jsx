@@ -10,12 +10,16 @@ export default function LiveStreamWindow({
   const [bid, setBid] = useState(45);
   const [count, setCount] = useState(14);
   const [secs, setSecs] = useState(10);
-  const [running, setRunning] = useState(true);
+  const [running, setRunning] = useState(false); // Cambiado a false para iniciar solo al vender
   const [viewersCount, setViewersCount] = useState(viewers);
   const [bidFeed, setBidFeed] = useState([]);
   const [leaderName, setLeaderName] = useState('ModaMx');
   const [showFlash, setShowFlash] = useState(false);
   const [flashNumber, setFlashNumber] = useState(0);
+  const [selectedPiece, setSelectedPiece] = useState(null);
+  const [showSellModal, setShowSellModal] = useState(false);
+  const [currentAuctionPiece, setCurrentAuctionPiece] = useState(null);
+  const [soldPieces, setSoldPieces] = useState(new Set());
 
   const CIRC = 2 * Math.PI * 24;
 
@@ -104,16 +108,56 @@ export default function LiveStreamWindow({
 
   const endRound = () => {
     setRunning(false);
+    
+    // Marcar pieza como vendida
+    if (currentAuctionPiece) {
+      setSoldPieces(prev => new Set([...prev, currentAuctionPiece.id]));
+      setCurrentAuctionPiece(null);
+    }
+    
     setTimeout(() => {
       setSecs(10);
-      setRunning(true);
       setCount(0);
     }, 3200);
+  };
+
+  const handlePieceClick = (piece) => {
+    if (soldPieces.has(piece.id)) return; // No permitir vender piezas ya vendidas
+    if (running) return; // No permitir si hay subasta activa
+    
+    setSelectedPiece(piece);
+    setShowSellModal(true);
+  };
+
+  const handleStartAuction = () => {
+    if (!selectedPiece) return;
+    
+    // Cerrar modal
+    setShowSellModal(false);
+    
+    // Iniciar subasta
+    setCurrentAuctionPiece(selectedPiece);
+    setBid(selectedPiece.minPrice);
+    setCount(1);
+    setSecs(10);
+    setRunning(true);
+    
+    // Limpiar feed
+    setBidFeed([]);
+    
+    // Primera puja del primer usuario
+    setTimeout(() => {
+      addBubble(users[0], selectedPiece.minPrice);
+    }, 500);
+    
+    setSelectedPiece(null);
   };
 
   const strokeDashoffset = CIRC * (1 - secs / 10);
   const ringStroke = secs <= 3 ? '#FF3B30' : '#D93025';
   const bidBarWidth = Math.min((bid / 250) * 100, 100);
+  
+  const pieces = livePost?.pieces || [];
 
   return (
     <>
@@ -127,7 +171,22 @@ export default function LiveStreamWindow({
           margin: 0 auto;
           position: relative;
           background: #1C1C1C;
-          overflow: hidden;
+          overflow-y: auto;
+          overflow-x: hidden;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .phone::-webkit-scrollbar {
+          width: 4px;
+        }
+
+        .phone::-webkit-scrollbar-track {
+          background: rgba(255,255,255,0.05);
+        }
+
+        .phone::-webkit-scrollbar-thumb {
+          background: rgba(217,48,37,0.4);
+          border-radius: 10px;
         }
 
         .video-feed {
@@ -570,6 +629,247 @@ export default function LiveStreamWindow({
         .nav-btn.center .nl {
           color: rgba(255,255,255,0.9);
         }
+
+        /* PIECES GRID */
+        .pieces-scroll-container {
+          position: absolute;
+          left: 16px;
+          right: 16px;
+          bottom: 240px;
+          max-height: 200px;
+          overflow-y: auto;
+          overflow-x: hidden;
+          z-index: 15;
+          -webkit-overflow-scrolling: touch;
+          scroll-behavior: smooth;
+        }
+
+        .pieces-scroll-container::-webkit-scrollbar {
+          width: 3px;
+        }
+
+        .pieces-scroll-container::-webkit-scrollbar-track {
+          background: rgba(255,255,255,0.05);
+          border-radius: 10px;
+        }
+
+        .pieces-scroll-container::-webkit-scrollbar-thumb {
+          background: rgba(217,48,37,0.5);
+          border-radius: 10px;
+        }
+
+        .pieces-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+          gap: 8px;
+          padding: 8px;
+          background: rgba(0,0,0,0.4);
+          border-radius: 12px;
+        }
+
+        .piece-card {
+          position: relative;
+          aspect-ratio: 1;
+          border-radius: 8px;
+          overflow: hidden;
+          cursor: pointer;
+          border: 2px solid transparent;
+          transition: all 0.3s ease;
+        }
+
+        .piece-card:hover {
+          transform: scale(1.05);
+          border-color: #D93025;
+          box-shadow: 0 4px 12px rgba(217,48,37,0.5);
+        }
+
+        .piece-card.sold {
+          opacity: 0.4;
+          pointer-events: none;
+        }
+
+        .piece-card.active {
+          border-color: #FFDE00;
+          box-shadow: 0 0 20px rgba(255,222,0,0.6);
+          animation: pulse-border 1s infinite;
+        }
+
+        @keyframes pulse-border {
+          0%, 100% { box-shadow: 0 0 20px rgba(255,222,0,0.6); }
+          50% { box-shadow: 0 0 30px rgba(255,222,0,0.9); }
+        }
+
+        .piece-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .piece-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          padding: 4px;
+        }
+
+        .piece-price {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 10px;
+          font-weight: 700;
+          color: #FFDE00;
+          text-align: center;
+        }
+
+        .piece-sold-badge {
+          position: absolute;
+          top: 2px;
+          right: 2px;
+          background: #FF2D55;
+          color: #fff;
+          font-size: 8px;
+          font-weight: 700;
+          padding: 2px 6px;
+          border-radius: 10px;
+        }
+
+        /* SELL MODAL */
+        .modal-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.7);
+          backdrop-filter: blur(8px);
+          z-index: 50;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .sell-modal {
+          background: rgba(28,28,28,0.95);
+          border: 1px solid rgba(255,45,85,0.3);
+          border-radius: 20px;
+          padding: 24px;
+          max-width: 320px;
+          width: 90%;
+          animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        }
+
+        @keyframes popIn {
+          from { opacity: 0; transform: scale(0.8); }
+          to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-header {
+          font-family: 'Inter', sans-serif;
+          font-size: 20px;
+          font-weight: 700;
+          color: #fff;
+          text-align: center;
+          margin-bottom: 16px;
+        }
+
+        .modal-piece-preview {
+          width: 100%;
+          height: 180px;
+          border-radius: 12px;
+          overflow: hidden;
+          margin-bottom: 16px;
+        }
+
+        .modal-piece-preview img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .modal-details {
+          background: rgba(255,255,255,0.05);
+          border-radius: 12px;
+          padding: 12px;
+          margin-bottom: 20px;
+        }
+
+        .modal-detail-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+
+        .modal-detail-row:last-child {
+          margin-bottom: 0;
+        }
+
+        .modal-detail-label {
+          font-size: 11px;
+          color: rgba(255,255,255,0.5);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+
+        .modal-detail-value {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 16px;
+          font-weight: 700;
+          color: #FFDE00;
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 10px;
+        }
+
+        .modal-btn {
+          flex: 1;
+          padding: 12px;
+          border-radius: 12px;
+          border: none;
+          font-family: 'Inter', sans-serif;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .modal-btn.cancel {
+          background: rgba(255,255,255,0.1);
+          color: rgba(255,255,255,0.7);
+        }
+
+        .modal-btn.cancel:hover {
+          background: rgba(255,255,255,0.15);
+        }
+
+        .modal-btn.confirm {
+          background: linear-gradient(135deg, #D93025, #FF2D55);
+          color: #fff;
+          box-shadow: 0 4px 12px rgba(217,48,37,0.5);
+        }
+
+        .modal-btn.confirm:hover {
+          transform: scale(1.05);
+          box-shadow: 0 6px 16px rgba(217,48,37,0.7);
+        }
+
+        .modal-warning {
+          background: rgba(255,222,0,0.1);
+          border: 1px solid rgba(255,222,0,0.3);
+          border-radius: 8px;
+          padding: 8px;
+          margin-bottom: 16px;
+          text-align: center;
+          font-size: 11px;
+          color: rgba(255,222,0,0.9);
+        }
       `}</style>
 
       <div className="phone">
@@ -611,72 +911,105 @@ export default function LiveStreamWindow({
           <span>{viewersCount.toLocaleString()} viendo</span>
         </div>
 
-        {/* TIMER RING */}
-        <div className="timer-area">
-          <div className="ring-wrap">
-            <svg viewBox="0 0 56 56">
-              <circle className="ring-bg" cx="28" cy="28" r="24" />
-              <circle 
-                className="ring-fill" 
-                cx="28" 
-                cy="28" 
-                r="24" 
-                style={{ 
-                  strokeDashoffset: strokeDashoffset,
-                  stroke: ringStroke 
-                }} 
-              />
-            </svg>
-            <div className="ring-center">
-              <div className={`t-num ${secs <= 3 ? 'urgent' : ''}`}>{secs}</div>
-              <div className="t-seg">SEG</div>
+        {/* TIMER RING - Solo mostrar si hay subasta activa */}
+        {running && (
+          <div className="timer-area">
+            <div className="ring-wrap">
+              <svg viewBox="0 0 56 56">
+                <circle className="ring-bg" cx="28" cy="28" r="24" />
+                <circle 
+                  className="ring-fill" 
+                  cx="28" 
+                  cy="28" 
+                  r="24" 
+                  style={{ 
+                    strokeDashoffset: strokeDashoffset,
+                    stroke: ringStroke 
+                  }} 
+                />
+              </svg>
+              <div className="ring-center">
+                <div className={`t-num ${secs <= 3 ? 'urgent' : ''}`}>{secs}</div>
+                <div className="t-seg">SEG</div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* BID BUBBLES */}
-        <div className="bid-feed">
-          {bidFeed.map((bubble) => (
-            <div key={bubble.id} className="bubble">
-              <div className="b-av" style={{ background: bubble.color }}>
-                {bubble.user[0]}
+        {/* BID BUBBLES - Solo mostrar si hay subasta activa */}
+        {running && (
+          <div className="bid-feed">
+            {bidFeed.map((bubble) => (
+              <div key={bubble.id} className="bubble">
+                <div className="b-av" style={{ background: bubble.color }}>
+                  {bubble.user[0]}
+                </div>
+                <div className="b-txt">
+                  <span className="b-n">{bubble.user}</span>
+                  <span className="b-a">+$5 → ${bubble.amount}</span>
+                </div>
               </div>
-              <div className="b-txt">
-                <span className="b-n">{bubble.user}</span>
-                <span className="b-a">+$5 → ${bubble.amount}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
-        {/* BID CARD */}
-        <div className="bid-card-wrap">
-          <div className="bid-card">
-            <div>
-              <div className="bc-label">Puja actual</div>
-              <div className="bc-amount">
-                <span className="ps">$</span>
-                <span>{bid}</span>
+        {/* BID CARD - Solo mostrar si hay subasta activa */}
+        {running && currentAuctionPiece && (
+          <div className="bid-card-wrap">
+            <div className="bid-card">
+              <div>
+                <div className="bc-label">Puja actual</div>
+                <div className="bc-amount">
+                  <span className="ps">$</span>
+                  <span>{bid}</span>
+                </div>
+              </div>
+              <div className="bc-right">
+                <div className="bc-leader">👑 {leaderName}</div>
+                <div className="bc-sub">{count} participantes</div>
               </div>
             </div>
-            <div className="bc-right">
-              <div className="bc-leader">👑 {leaderName}</div>
-              <div className="bc-sub">{count} participantes</div>
+            <div className="bid-bar">
+              <div className="bid-bar-fill" style={{ width: `${bidBarWidth}%` }}></div>
             </div>
           </div>
-          <div className="bid-bar">
-            <div className="bid-bar-fill" style={{ width: `${bidBarWidth}%` }}></div>
-          </div>
-        </div>
+        )}
 
         {/* FLASH */}
         <div className={`flash-wrap ${showFlash ? 'show' : ''}`}>
           <div className="flash-n">{flashNumber}</div>
         </div>
 
+        {/* PIECES GRID */}
+        {pieces.length > 0 && (
+          <div className="pieces-scroll-container">
+            <div className="pieces-grid">
+              {pieces.map((piece, index) => (
+                <div
+                  key={piece.id || index}
+                  className={`piece-card ${
+                    soldPieces.has(piece.id) ? 'sold' : ''
+                  } ${
+                    currentAuctionPiece?.id === piece.id ? 'active' : ''
+                  }`}
+                  onClick={() => handlePieceClick(piece)}
+                >
+                  <img src={piece.url} alt={piece.description} className="piece-img" />
+                  <div className="piece-overlay">
+                    <div className="piece-price">RD${piece.minPrice}</div>
+                  </div>
+                  {soldPieces.has(piece.id) && (
+                    <div className="piece-sold-badge">VENDIDO</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* BOTTOM */}
         <div className="bottom-ui">
-          <div className="select-pill">👆 Selecciona piezas de la galería o cámara</div>
+          <div className="select-pill">👆 Selecciona una pieza para iniciar subasta</div>
           <div className="bottom-nav">
             <div className="nav-group">
               <button className="nav-btn">
@@ -695,6 +1028,53 @@ export default function LiveStreamWindow({
           </div>
         </div>
       </div>
+
+      {/* SELL MODAL */}
+      {showSellModal && selectedPiece && (
+        <div className="modal-backdrop" onClick={() => setShowSellModal(false)}>
+          <div className="sell-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">🔨 ¿Iniciar Subasta?</div>
+            
+            <div className="modal-piece-preview">
+              <img src={selectedPiece.url} alt={selectedPiece.description} />
+            </div>
+            
+            <div className="modal-warning">
+              ⏱️ La subasta durará 10 segundos
+            </div>
+            
+            <div className="modal-details">
+              <div className="modal-detail-row">
+                <span className="modal-detail-label">Descripción</span>
+                <span style={{ fontSize: '12px', color: '#fff', maxWidth: '60%', textAlign: 'right' }}>
+                  {selectedPiece.description}
+                </span>
+              </div>
+              <div className="modal-detail-row">
+                <span className="modal-detail-label">Precio Mínimo</span>
+                <span className="modal-detail-value">RD${selectedPiece.minPrice}</span>
+              </div>
+              <div className="modal-detail-row">
+                <span className="modal-detail-label">Timer</span>
+                <span className="modal-detail-value" style={{ color: '#FF3B30' }}>10s</span>
+              </div>
+            </div>
+            
+            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginBottom: '16px' }}>
+              ⚠️ El precio mínimo no se puede cambiar una vez iniciada la subasta
+            </div>
+            
+            <div className="modal-actions">
+              <button className="modal-btn cancel" onClick={() => setShowSellModal(false)}>
+                Cancelar
+              </button>
+              <button className="modal-btn confirm" onClick={handleStartAuction}>
+                🔨 VENDER
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
