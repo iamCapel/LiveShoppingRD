@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Auth from './pages/Auth';
 import LiveStreamWindow from './pages/LiveStreamWindow';
+import livesellLogoHeader from './assets/livesell-logo-header.png';
 import BottomNav from './components/BottomNav';
 import { Camera, DollarSign, Gavel, Users, Bell, ShoppingCart, Video, Play, Pause, X, Search, UserPlus, UserCheck, Plus, PlusCircle, Home, User, Heart, Send, Clock, TrendingUp, Image } from 'lucide-react';
 import { App as CapacitorApp } from '@capacitor/app';
@@ -2207,11 +2208,8 @@ const LiveShoppingApp = () => {
           <div className="bg-black/80 backdrop-blur-xl border-b border-white/10 sticky top-0 z-10">
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold flex items-center gap-1">
-                  <span className="bg-gradient-to-r from-red-500 to-pink-500 px-2.5 py-0.5 rounded-lg text-white font-bold uppercase tracking-wider transform -skew-x-6 shadow-lg text-base" style={{ fontFamily: "'Arial Black', sans-serif" }}>
-                    LIVE
-                  </span>
-                  <span className="text-white italic" style={{ fontFamily: "'Playfair Display', serif" }}>ShoppingRD</span>
+                <h1 className="flex items-center">
+                  <img src={livesellLogoHeader} alt="LiveSell" className="h-8" />
                 </h1>
                 <Bell className="w-6 h-6 text-gray-300" />
               </div>

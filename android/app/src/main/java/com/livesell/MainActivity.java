@@ -1,4 +1,4 @@
-package com.liveshopping.rd;
+package com.livesell;
 
 import com.getcapacitor.BridgeActivity;
 
