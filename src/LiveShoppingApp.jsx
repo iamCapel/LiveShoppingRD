@@ -1390,9 +1390,9 @@ const LiveShoppingApp = () => {
             }}
           />
           
-          {/* Elementos decorativos con parallax */}
+          {/* Elementos decorativos con parallax - reducidos */}
           <div 
-            className="fixed w-96 h-96 rounded-full blur-3xl opacity-20 pointer-events-none z-0"
+            className="fixed w-96 h-96 rounded-full blur-3xl opacity-5 pointer-events-none z-0"
             style={{
               background: 'linear-gradient(135deg, #ef4444, #ec4899)',
               top: `${20 + gyroY * 10}%`,
@@ -1402,7 +1402,7 @@ const LiveShoppingApp = () => {
             }}
           />
           <div 
-            className="fixed w-80 h-80 rounded-full blur-3xl opacity-15 pointer-events-none z-0"
+            className="fixed w-80 h-80 rounded-full blur-3xl opacity-3 pointer-events-none z-0"
             style={{
               background: 'linear-gradient(135deg, #ec4899, #9333ea)',
               bottom: `${10 + gyroY * -10}%`,
