@@ -140,6 +140,9 @@ const LiveShoppingApp = () => {
   const [showCameraCapture, setShowCameraCapture] = useState(false); // Interfaz de captura estilo Snapchat
   const [showLiveSellPrep, setShowLiveSellPrep] = useState(false); // Vista de preparación de LiveSell
   const [returnToLiveSellPrep, setReturnToLiveSellPrep] = useState(false); // Flag para volver a LiveSellPrep después de capturar
+  const [cameraFacingMode, setCameraFacingMode] = useState('user'); // 'user' (frontal) o 'environment' (trasera)
+  const [flashEnabled, setFlashEnabled] = useState(false); // Estado del flash
+  const [showEffects, setShowEffects] = useState(false); // Panel de efectos y lentes
   
   // Estados para efecto parallax con giroscopio
   const [gyroX, setGyroX] = useState(0);
@@ -204,7 +207,7 @@ const LiveShoppingApp = () => {
     try {
       console.log('📸 Solicitando permisos de cámara y audio...');
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user' }, 
+        video: { facingMode: cameraFacingMode }, 
         audio: true 
       });
       
@@ -239,7 +242,7 @@ const LiveShoppingApp = () => {
       alert(mensaje);
       setShowLiveSellPrep(false);
     }
-  }, []);
+  }, [cameraFacingMode]);
 
   // Capturar foto directamente desde la vista de LiveSellPrep
   const captureLiveSellPhoto = useCallback(() => {
@@ -284,6 +287,54 @@ const LiveShoppingApp = () => {
     document.body.appendChild(flashDiv);
     setTimeout(() => flashDiv.remove(), 300);
   }, []);
+
+  // Función para cambiar entre cámara frontal y trasera
+  const toggleCamera = useCallback(async () => {
+    const newFacingMode = cameraFacingMode === 'user' ? 'environment' : 'user';
+    
+    // Detener stream actual
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: newFacingMode }, 
+        audio: true 
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setCameraFacingMode(newFacingMode);
+      }
+    } catch (err) {
+      console.error('Error al cambiar cámara:', err);
+      alert('No se pudo cambiar de cámara');
+    }
+  }, [cameraFacingMode]);
+
+  // Función para toggle del flash
+  const toggleFlash = useCallback(async () => {
+    if (!streamRef.current) return;
+    
+    try {
+      const track = streamRef.current.getVideoTracks()[0];
+      const capabilities = track.getCapabilities();
+      
+      if (capabilities.torch) {
+        await track.applyConstraints({
+          advanced: [{ torch: !flashEnabled }]
+        });
+        setFlashEnabled(!flashEnabled);
+      } else {
+        alert('Tu dispositivo no soporta flash/linterna');
+      }
+    } catch (err) {
+      console.error('Error al toggle flash:', err);
+    }
+  }, [flashEnabled]);
 
   // Limpiar cámara cuando se cierra LiveSellPrep
   useEffect(() => {
@@ -1483,9 +1534,38 @@ const LiveShoppingApp = () => {
           >
             ×
           </button>
-          <div className="text-white font-extrabold text-lg tracking-tight" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}>Preparar LiveSell</div>
           
-          {/* Botón TRANSMITIR - top right */}
+          {/* Controles de cámara centrales */}
+          <div className="flex items-center gap-3">
+            {/* Botón cambiar cámara */}
+            <button
+              onClick={toggleCamera}
+              className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 3h6v6"></path>
+                <path d="M9 21H3v-6"></path>
+                <path d="M21 3l-7 7"></path>
+                <path d="M3 21l7-7"></path>
+              </svg>
+            </button>
+
+            {/* Botón flash */}
+            <button
+              onClick={toggleFlash}
+              className={`w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center transition-all ${
+                flashEnabled 
+                  ? 'bg-yellow-500/60 border-yellow-400 text-yellow-50' 
+                  : 'bg-black/40 border-white/10 text-white hover:bg-white/20'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill={flashEnabled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </button>
+          </div>
+          
+          {/* Botón TRANSMITIR - top right más cuadrado */}
           <button
             onClick={() => {
               if (promoteImages.length === 0) {
@@ -1495,7 +1575,7 @@ const LiveShoppingApp = () => {
               setShowLiveSellPrep(false);
               startPreLive();
             }}
-            className="px-5 py-2.5 rounded-full flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
+            className="px-4 py-2.5 rounded-xl flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
             style={{
               background: 'linear-gradient(135deg, #dc2626, #ef4444, #b91c1c)',
               backgroundSize: '200% 200%',
@@ -1514,11 +1594,20 @@ const LiveShoppingApp = () => {
         {promoteImages.length > 0 && (
           <div className="absolute bottom-32 left-0 right-0 px-4 z-20" style={{ animation: 'fadeInUp 0.35s ease both' }}>
             <div className="max-w-md mx-auto">
-              <div className="flex items-center gap-2 mb-2 justify-center">
-                <ShoppingCart className="w-3.5 h-3.5 text-pink-400" strokeWidth={2.5} />
-                <span className="text-white/70 font-bold text-[11px] tracking-wide uppercase">
-                  Piezas para el Live ({promoteImages.filter(p => p.description && p.minPrice).length})
-                </span>
+              <div className="flex items-center gap-2 mb-2 justify-between">
+                <div className="flex items-center gap-2">
+                  <ShoppingCart className="w-3.5 h-3.5 text-pink-400" strokeWidth={2.5} />
+                  <span className="text-white/70 font-bold text-[11px] tracking-wide uppercase">
+                    Piezas para el Live ({promoteImages.filter(p => p.description && p.minPrice).length})
+                  </span>
+                </div>
+                {/* Botón para abrir galería de piezas */}
+                <button
+                  onClick={() => setShowPiecesGallery(true)}
+                  className="px-3 py-1 rounded-full bg-pink-500/20 border border-pink-500/40 text-pink-300 text-[10px] font-bold hover:bg-pink-500/30 transition-all"
+                >
+                  Ver todas
+                </button>
               </div>
               
               {/* Grid de miniaturas horizontal */}
@@ -1614,51 +1703,38 @@ const LiveShoppingApp = () => {
           {/* Divider */}
           <div className="w-px h-[30px] bg-white/12 flex-shrink-0" />
 
-          {/* Botón PIEZAS */}
+          {/* Botón EFECTOS (reemplaza Piezas) */}
           <button
             onClick={() => {
-              if (promoteImages.length > 0) {
-                setShowPiecesGallery(true);
-              }
+              setShowEffects(true);
             }}
             className="w-[52px] h-[52px] rounded-full border transition-all relative"
             style={{
-              background: promoteImages.length > 0 ? 'rgba(236, 72, 153, 0.22)' : 'rgba(255, 255, 255, 0.07)',
-              borderColor: promoteImages.length > 0 ? 'rgba(236, 72, 153, 0.55)' : 'rgba(255, 255, 255, 0.12)'
+              background: showEffects ? 'rgba(139, 92, 246, 0.22)' : 'rgba(255, 255, 255, 0.07)',
+              borderColor: showEffects ? 'rgba(139, 92, 246, 0.55)' : 'rgba(255, 255, 255, 0.12)'
             }}
           >
-            {/* Badge contador */}
-            {promoteImages.length > 0 && (
-              <div 
-                className="absolute top-1 right-2 min-w-[18px] h-[18px] rounded-full bg-gradient-to-br from-pink-500 to-purple-600 px-1 flex items-center justify-center text-[9px] font-bold text-white shadow-lg shadow-pink-500/50"
-                style={{ animation: 'popIn 0.3s ease both', fontFamily: 'monospace' }}
-              >
-                {promoteImages.length}
-              </div>
-            )}
-            
-            {/* Grid 2x2 */}
+            {/* Ícono de efectos/lentes */}
             <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full">
-              <div className="grid grid-cols-2 gap-0.5 w-[22px] h-[22px]">
-                {['#ec4899', '#f0467a', '#ff8fab', '#c026d3'].map((color, i) => (
-                  <div 
-                    key={i} 
-                    className="rounded-[2px]" 
-                    style={{ 
-                      background: color, 
-                      opacity: promoteImages.length > 0 ? 1 : 0.6 
-                    }}
-                  />
-                ))}
-              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={showEffects ? '#a78bfa' : 'rgba(255, 255, 255, 0.6)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2"></path>
+                <path d="M12 20v2"></path>
+                <path d="m4.93 4.93 1.41 1.41"></path>
+                <path d="m17.66 17.66 1.41 1.41"></path>
+                <path d="M2 12h2"></path>
+                <path d="M20 12h2"></path>
+                <path d="m6.34 17.66-1.41 1.41"></path>
+                <path d="m19.07 4.93-1.41 1.41"></path>
+              </svg>
               <span 
                 className="text-[9px] font-bold tracking-[0.5px] uppercase" 
                 style={{ 
-                  color: promoteImages.length > 0 ? '#f0467a' : 'rgba(255, 255, 255, 0.45)',
+                  color: showEffects ? '#a78bfa' : 'rgba(255, 255, 255, 0.45)',
                   fontFamily: 'system-ui'
                 }}
               >
-                Piezas
+                Efectos
               </span>
             </div>
           </button>
@@ -1789,6 +1865,72 @@ const LiveShoppingApp = () => {
           </div>
         )}
 
+        {/* Panel de Efectos y Lentes tipo Snapchat */}
+        {showEffects && (
+          <div className="absolute inset-0 bg-black/95 backdrop-blur-md z-40 flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <button
+                onClick={() => setShowEffects(false)}
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <span className="text-white font-bold text-lg">Efectos y Lentes</span>
+              <div className="w-10" />
+            </div>
+
+            {/* Categorías */}
+            <div className="px-4 py-3 border-b border-white/10">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                {['Lentes', 'Filtros', 'Stickers', 'Texto'].map(category => (
+                  <button
+                    key={category}
+                    className="px-4 py-2 rounded-full bg-white/10 text-white text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition-colors"
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Grid de efectos */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="grid grid-cols-3 gap-3 max-w-2xl mx-auto">
+                {/* Ejemplos de efectos */}
+                {[
+                  { name: 'Sin efecto', emoji: '✨' },
+                  { name: 'Corazones', emoji: '💕' },
+                  { name: 'Flores', emoji: '🌸' },
+                  { name: 'Brillos', emoji: '✨' },
+                  { name: 'Estrellas', emoji: '⭐' },
+                  { name: 'Arcoíris', emoji: '🌈' },
+                  { name: 'Mariposas', emoji: '🦋' },
+                  { name: 'Corona', emoji: '👑' },
+                  { name: 'Gafas', emoji: '😎' },
+                ].map((effect, idx) => (
+                  <button
+                    key={idx}
+                    className="aspect-square rounded-xl bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-2 hover:bg-white/10 hover:border-purple-400 transition-all"
+                  >
+                    <span className="text-4xl">{effect.emoji}</span>
+                    <span className="text-white text-xs font-medium">{effect.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer con info */}
+            <div className="p-4 border-t border-white/10">
+              <div className="bg-purple-500/20 border border-purple-500/40 rounded-xl p-3 text-center">
+                <p className="text-purple-300 text-sm font-medium">
+                  ✨ Próximamente: Más efectos y lentes AR
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Modal Editor de Pieza - Flotante sobre la vista de preparación */}
         {showPieceEditor && editingPiece && (
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1875,6 +2017,33 @@ const LiveShoppingApp = () => {
             </div>
           </div>
         )}
+
+        {/* Input oculto para selección de archivos desde galería */}
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={(e) => {
+            const files = Array.from(e.target.files || []);
+            files.forEach(file => {
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                const newPiece = {
+                  id: Date.now() + Math.random(),
+                  url: event.target.result,
+                  source: 'gallery',
+                  description: '',
+                  minPrice: ''
+                };
+                setPromoteImages(prev => [...prev, newPiece]);
+              };
+              reader.readAsDataURL(file);
+            });
+            e.target.value = '';
+          }}
+          style={{ display: 'none' }}
+        />
       </div>
     );
   }
