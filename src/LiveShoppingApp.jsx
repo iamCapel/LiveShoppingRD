@@ -1466,37 +1466,6 @@ const LiveShoppingApp = () => {
           </button>
         </div>
 
-        {/* Botón "COMENZAR" en el centro */}
-        <div className="absolute inset-0 flex items-center justify-center z-10">
-          {/* Botón central COMENZAR */}
-          <button
-            onClick={() => {
-              if (promoteImages.length === 0) {
-                alert('⚠️ Agrega al menos una pieza desde la galería antes de comenzar');
-                return;
-              }
-              // Iniciar el Live
-              setShowLiveSellPrep(false);
-              startPreLive();
-            }}
-            className="relative w-44 h-44 rounded-full flex flex-col items-center justify-center gap-1.5 transition-transform hover:scale-105 active:scale-95"
-            style={{
-              background: 'linear-gradient(135deg, #ec4899, #f0467a, #c026d3)',
-              backgroundSize: '200% 200%',
-              boxShadow: '0 0 0 0 rgba(236, 72, 153, 0.4), 0 12px 50px rgba(236, 72, 153, 0.6)',
-              animation: 'glowPulse 2.5s ease-in-out infinite, gradShift 4s ease infinite'
-            }}
-          >
-            <Video className="w-14 h-14 text-white" strokeWidth={1.8} />
-            <span className="text-white font-black text-xl tracking-wider" style={{ fontWeight: 900 }}>COMENZAR</span>
-            {promoteImages.length > 0 && (
-              <span className="text-xs text-white/75 font-semibold">
-                {promoteImages.length} {promoteImages.length === 1 ? 'pieza' : 'piezas'}
-              </span>
-            )}
-          </button>
-        </div>
-
         {/* Miniaturas de piezas seleccionadas - ARRIBA de los botones */}
         {promoteImages.length > 0 && (
           <div className="absolute bottom-32 left-0 right-0 px-4 z-20" style={{ animation: 'fadeInUp 0.35s ease both' }}>
