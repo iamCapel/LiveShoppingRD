@@ -164,6 +164,16 @@ export default function LiveStreamWindow({
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        body {
+          overflow: hidden;
+        }
+
         .phone {
           width: 100%;
           max-width: 420px;
@@ -171,7 +181,7 @@ export default function LiveStreamWindow({
           margin: 0 auto;
           position: relative;
           background: #1C1C1C;
-          overflow-y: auto;
+          overflow-y: scroll;
           overflow-x: hidden;
           -webkit-overflow-scrolling: touch;
         }
@@ -189,9 +199,17 @@ export default function LiveStreamWindow({
           border-radius: 10px;
         }
 
+        .phone-content {
+          min-height: 300vh;
+          position: relative;
+        }
+
         .video-feed {
           position: absolute;
-          inset: 0;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 100vh;
           background: #1C1C1C;
           overflow: hidden;
         }
@@ -228,12 +246,14 @@ export default function LiveStreamWindow({
         }
 
         .top-bar {
-          position: relative;
+          position: sticky;
+          top: 0;
           z-index: 20;
           display: flex;
           align-items: center;
           justify-content: space-between;
           padding: 18px 16px 10px;
+          background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
         }
 
         .top-left {
@@ -288,10 +308,11 @@ export default function LiveStreamWindow({
         }
 
         .viewers-badge {
-          position: absolute;
+          position: sticky;
           z-index: 20;
           top: 70px;
           left: 16px;
+          width: fit-content;
           display: flex;
           align-items: center;
           gap: 6px;
@@ -301,6 +322,7 @@ export default function LiveStreamWindow({
           font-size: 12px;
           font-weight: 500;
           color: rgba(255,255,255,0.85);
+          margin-bottom: -40px;
         }
 
         .v-dot {
@@ -312,10 +334,12 @@ export default function LiveStreamWindow({
         }
 
         .timer-area {
-          position: absolute;
+          position: sticky;
           z-index: 20;
           top: 62px;
-          right: 16px;
+          float: right;
+          margin-right: 16px;
+          margin-bottom: -70px;
         }
 
         .ring-wrap {
@@ -379,7 +403,7 @@ export default function LiveStreamWindow({
         }
 
         .bid-feed {
-          position: absolute;
+          position: fixed;
           z-index: 20;
           left: 16px;
           bottom: 310px;
@@ -445,11 +469,14 @@ export default function LiveStreamWindow({
         }
 
         .bid-card-wrap {
-          position: absolute;
+          position: fixed;
           z-index: 20;
-          left: 16px;
-          right: 16px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 100%;
+          max-width: 388px;
           bottom: 218px;
+          padding: 0 16px;
         }
 
         .bid-card {
@@ -515,7 +542,7 @@ export default function LiveStreamWindow({
         }
 
         .flash-wrap {
-          position: absolute;
+          position: fixed;
           inset: 0;
           z-index: 30;
           display: flex;
@@ -553,11 +580,13 @@ export default function LiveStreamWindow({
         }
 
         .bottom-ui {
-          position: absolute;
+          position: fixed;
           z-index: 20;
           bottom: 0;
-          left: 0;
-          right: 0;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 100%;
+          max-width: 420px;
         }
 
         .select-pill {
@@ -632,9 +661,11 @@ export default function LiveStreamWindow({
 
         /* PIECES GRID */
         .pieces-scroll-container {
-          position: absolute;
-          left: 16px;
-          right: 16px;
+          position: fixed;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 100%;
+          max-width: 388px;
           bottom: 240px;
           max-height: 200px;
           overflow-y: auto;
@@ -642,6 +673,7 @@ export default function LiveStreamWindow({
           z-index: 15;
           -webkit-overflow-scrolling: touch;
           scroll-behavior: smooth;
+          padding: 0 16px;
         }
 
         .pieces-scroll-container::-webkit-scrollbar {
@@ -873,8 +905,9 @@ export default function LiveStreamWindow({
       `}</style>
 
       <div className="phone">
-        {/* VIDEO */}
-        <div className="video-feed">
+        <div className="phone-content">
+          {/* VIDEO */}
+          <div className="video-feed">
           <div className="vignette"></div>
           <div className="model-area">
             <svg viewBox="0 0 180 320" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1026,6 +1059,7 @@ export default function LiveStreamWindow({
               </button>
             </div>
           </div>
+        </div>
         </div>
       </div>
 
