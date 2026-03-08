@@ -123,20 +123,37 @@ export default function BottomNav({ activeTab, onTabChange, urgentLive, onLiveSe
   const onPointerUp = () => {
     if (!dragging) return;
     setDragging(false);
-    if (dragDelta < -30) slide("left");
-    else if (dragDelta > 30) slide("right");
-    else setDragDelta(0);
+    
+    // Si el drag fue mínimo (menos de 10px), considerar como click
+    if (Math.abs(dragDelta) < 10) {
+      console.log('👆 Tap detectado (drag mínimo)');
+      handleCenterClick();
+    } else if (dragDelta < -30) {
+      slide("left");
+    } else if (dragDelta > 30) {
+      slide("right");
+    } else {
+      setDragDelta(0);
+    }
     startX.current = null;
   };
 
   // Handle center button click based on current option
   const handleCenterClick = () => {
+    console.log('🔘 Click en botón central detectado');
+    console.log('📝 Opción actual:', current.id);
+    
     if (current.id === "promocionar") {
+      console.log('➡️ Navegando a promocionar');
       onTabChange('promote');
     } else if (current.id === "livesell") {
+      console.log('🎥 Iniciando LiveSell');
       // Navigate to live streaming preparation
       if (onLiveSellClick) {
+        console.log('✅ Ejecutando onLiveSellClick');
         onLiveSellClick();
+      } else {
+        console.error('❌ onLiveSellClick no está definido');
       }
     }
   };
