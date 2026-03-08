@@ -3,6 +3,7 @@ import Auth from './pages/Auth';
 import LiveStreamWindow from './pages/LiveStreamWindow';
 import BottomNav from './components/BottomNav';
 import { Camera, DollarSign, Gavel, Users, Bell, ShoppingCart, Video, Play, Pause, X, Search, UserPlus, UserCheck, Plus, PlusCircle, Home, User, Heart, Send, Clock, TrendingUp, Image } from 'lucide-react';
+import { App as CapacitorApp } from '@capacitor/app';
 
 const LiveShoppingApp = () => {
   // Estados principales
@@ -138,6 +139,10 @@ const LiveShoppingApp = () => {
   const [showCameraCapture, setShowCameraCapture] = useState(false); // Interfaz de captura estilo Snapchat
   const [showLiveSellPrep, setShowLiveSellPrep] = useState(false); // Vista de preparación de LiveSell
   const [returnToLiveSellPrep, setReturnToLiveSellPrep] = useState(false); // Flag para volver a LiveSellPrep después de capturar
+  
+  // Estados para efecto parallax con giroscopio
+  const [gyroX, setGyroX] = useState(0);
+  const [gyroY, setGyroY] = useState(0);
   
   // Estados para transmisión en vivo
   const [currentLivePost, setCurrentLivePost] = useState(null); // Post que se está transmitiendo
@@ -298,6 +303,103 @@ const LiveShoppingApp = () => {
     }, 5000); // Revisar cada 5 segundos
     return () => clearInterval(interval);
   }, [currentUser, isPreLive, isLive]);
+  
+  // Manejo del botón de retroceso de Android
+  useEffect(() => {
+    const handleBackButton = CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+      // Si hay modales o vistas especiales abiertas, cerrarlas primero
+      if (showLiveSellPrep) {
+        setShowLiveSellPrep(false);
+        return;
+      }
+      
+      if (showCameraCapture) {
+        setShowCameraCapture(false);
+        return;
+      }
+      
+      if (showPieceEditor) {
+        setShowPieceEditor(false);
+        return;
+      }
+      
+      if (showStoryViewer) {
+        setShowStoryViewer(false);
+        return;
+      }
+      
+      if (viewingLive) {
+        setViewingLive(null);
+        return;
+      }
+      
+      if (showAddStory) {
+        setShowAddStory(false);
+        return;
+      }
+      
+      // Si está en una pestaña diferente a 'home', volver a home
+      if (activeTab !== 'home') {
+        setActiveTab('home');
+        return;
+      }
+      
+      // Si está en home y no hay vistas abiertas, salir de la app
+      CapacitorApp.exitApp();
+    });
+    
+    // Cleanup al desmontar
+    return () => {
+      handleBackButton.remove();
+    };
+  }, [activeTab, showLiveSellPrep, showCameraCapture, showPieceEditor, showStoryViewer, viewingLive, showAddStory]);
+  
+  // Efecto parallax con giroscopio usando Device Orientation API
+  useEffect(() => {
+    const handleOrientation = (event) => {
+      // beta: inclinación frontal/trasera (-180 a 180)
+      // gamma: inclinación izquierda/derecha (-90 a 90)
+      const beta = event.beta;
+      const gamma = event.gamma;
+      
+      if (beta !== null && gamma !== null) {
+        // Limitar y normalizar los valores para un movimiento suave
+        const normalizedX = Math.max(-30, Math.min(30, gamma)) / 30; // -1 a 1
+        const normalizedY = Math.max(-30, Math.min(30, beta - 45)) / 30; // -1 a 1 (ajustado para posición normal)
+        
+        // Aplicar un factor de suavizado
+        setGyroX(prev => prev * 0.8 + normalizedX * 0.2);
+        setGyroY(prev => prev * 0.8 + normalizedY * 0.2);
+      }
+    };
+    
+    // Función para solicitar permisos en iOS 13+
+    const requestPermission = async () => {
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+          const permission = await DeviceOrientationEvent.requestPermission();
+          if (permission === 'granted') {
+            window.addEventListener('deviceorientation', handleOrientation);
+          }
+        } catch (error) {
+          console.log('Permiso denegado para orientación del dispositivo');
+        }
+      } else {
+        // Para Android y navegadores que no requieren permiso
+        window.addEventListener('deviceorientation', handleOrientation);
+      }
+    };
+    
+    // Solo activar en la vista home y si está registrado
+    if (activeTab === 'home' && isRegistered) {
+      requestPermission();
+    }
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('deviceorientation', handleOrientation);
+    };
+  }, [activeTab, isRegistered]);
   
   // ====================================================================
   // FUNCIONES HELPER
@@ -1278,7 +1380,40 @@ const LiveShoppingApp = () => {
       const followedWithStories = following.filter(u => u.stories && u.stories.length > 0);
       
       return (
-        <div className="min-h-screen w-full bg-black pb-20 overflow-x-hidden">
+        <div className="min-h-screen w-full bg-black pb-20 overflow-x-hidden relative">
+          {/* Fondo animado con efecto parallax */}
+          <div 
+            className="fixed inset-0 pointer-events-none z-0"
+            style={{
+              background: `radial-gradient(circle at ${50 + gyroX * 20}% ${50 + gyroY * 20}%, rgba(220, 38, 38, 0.15) 0%, transparent 50%), radial-gradient(circle at ${30 + gyroX * -15}% ${70 + gyroY * -15}%, rgba(236, 72, 153, 0.12) 0%, transparent 50%), radial-gradient(circle at ${70 + gyroX * 15}% ${30 + gyroY * 15}%, rgba(147, 51, 234, 0.1) 0%, transparent 50%)`,
+              transition: 'background 0.3s ease-out'
+            }}
+          />
+          
+          {/* Elementos decorativos con parallax */}
+          <div 
+            className="fixed w-96 h-96 rounded-full blur-3xl opacity-20 pointer-events-none z-0"
+            style={{
+              background: 'linear-gradient(135deg, #ef4444, #ec4899)',
+              top: `${20 + gyroY * 10}%`,
+              left: `${10 + gyroX * 10}%`,
+              transform: `translate(${gyroX * 30}px, ${gyroY * 30}px)`,
+              transition: 'transform 0.3s ease-out'
+            }}
+          />
+          <div 
+            className="fixed w-80 h-80 rounded-full blur-3xl opacity-15 pointer-events-none z-0"
+            style={{
+              background: 'linear-gradient(135deg, #ec4899, #9333ea)',
+              bottom: `${10 + gyroY * -10}%`,
+              right: `${15 + gyroX * -10}%`,
+              transform: `translate(${gyroX * -20}px, ${gyroY * -20}px)`,
+              transition: 'transform 0.3s ease-out'
+            }}
+          />
+          
+          {/* Contenido principal con z-index superior */}
+          <div className="relative z-10">
           {/* Notificación flotante de live urgente - visible durante 1 hora */}
           {urgentLive && !isLive && !isPreLive && (
             <div className="fixed top-4 left-4 right-4 z-50 animate-fade-in max-w-full px-2">
@@ -1538,12 +1673,15 @@ const LiveShoppingApp = () => {
           )}
           
           {/* Bottom Navigation */}
-          <BottomNav 
-            activeTab={activeTab} 
-            onTabChange={setActiveTab} 
-            urgentLive={urgentLive}
-            onLiveSellClick={() => setShowLiveSellPrep(true)}
-          />
+          {activeTab === 'home' && (
+            <BottomNav 
+              activeTab={activeTab} 
+              onTabChange={setActiveTab} 
+              urgentLive={urgentLive}
+              onLiveSellClick={() => setShowLiveSellPrep(true)}
+            />
+          )}
+          </div> {/* Cierre del contenido principal con z-index */}
         </div>
       );
     }
@@ -1615,12 +1753,14 @@ const LiveShoppingApp = () => {
           </div>
           
           {/* Bottom Navigation */}
-          <BottomNav 
-            activeTab={activeTab} 
-            onTabChange={setActiveTab} 
-            urgentLive={urgentLive}
-            onLiveSellClick={() => setShowLiveSellPrep(true)}
-          />
+          {activeTab === 'home' && (
+            <BottomNav 
+              activeTab={activeTab} 
+              onTabChange={setActiveTab} 
+              urgentLive={urgentLive}
+              onLiveSellClick={() => setShowLiveSellPrep(true)}
+            />
+          )}
         </div>
       );
       
@@ -1683,12 +1823,14 @@ const LiveShoppingApp = () => {
           </div>
           
           {/* Bottom Navigation */}
-          <BottomNav 
-            activeTab={activeTab} 
-            onTabChange={setActiveTab} 
-            urgentLive={urgentLive}
-            onLiveSellClick={() => setShowLiveSellPrep(true)}
-          />
+          {activeTab === 'home' && (
+            <BottomNav 
+              activeTab={activeTab} 
+              onTabChange={setActiveTab} 
+              urgentLive={urgentLive}
+              onLiveSellClick={() => setShowLiveSellPrep(true)}
+            />
+          )}
         </div>
       );
     }
@@ -1982,12 +2124,14 @@ const LiveShoppingApp = () => {
           </div>
 
           {/* Bottom Navigation */}
-          <BottomNav 
-            activeTab={activeTab} 
-            onTabChange={setActiveTab} 
-            urgentLive={urgentLive}
-            onLiveSellClick={() => setShowLiveSellPrep(true)}
-          />
+          {activeTab === 'home' && (
+            <BottomNav 
+              activeTab={activeTab} 
+              onTabChange={setActiveTab} 
+              urgentLive={urgentLive}
+              onLiveSellClick={() => setShowLiveSellPrep(true)}
+            />
+          )}
         </div>
       );
     }
@@ -2172,12 +2316,14 @@ const LiveShoppingApp = () => {
           </div>
 
           {/* Bottom Navigation */}
-          <BottomNav 
-            activeTab={activeTab} 
-            onTabChange={setActiveTab} 
-            urgentLive={urgentLive}
-            onLiveSellClick={() => setShowLiveSellPrep(true)}
-          />
+          {activeTab === 'home' && (
+            <BottomNav 
+              activeTab={activeTab} 
+              onTabChange={setActiveTab} 
+              urgentLive={urgentLive}
+              onLiveSellClick={() => setShowLiveSellPrep(true)}
+            />
+          )}
         </div>
       );
     }
@@ -2297,12 +2443,14 @@ const LiveShoppingApp = () => {
           </div>
           
           {/* Bottom Navigation */}
-          <BottomNav 
-            activeTab={activeTab} 
-            onTabChange={setActiveTab} 
-            urgentLive={urgentLive}
-            onLiveSellClick={() => setShowLiveSellPrep(true)}
-          />
+          {activeTab === 'home' && (
+            <BottomNav 
+              activeTab={activeTab} 
+              onTabChange={setActiveTab} 
+              urgentLive={urgentLive}
+              onLiveSellClick={() => setShowLiveSellPrep(true)}
+            />
+          )}
         </div>
       );
     }
