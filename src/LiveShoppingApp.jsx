@@ -136,6 +136,7 @@ const LiveShoppingApp = () => {
   const [promoteLiveDate, setPromoteLiveDate] = useState('');
   const [editingPiece, setEditingPiece] = useState(null); // Pieza que se está editando
   const [showPieceEditor, setShowPieceEditor] = useState(false);
+  const [showPiecesGallery, setShowPiecesGallery] = useState(false); // Panel de galería de piezas
   const [showCameraCapture, setShowCameraCapture] = useState(false); // Interfaz de captura estilo Snapchat
   const [showLiveSellPrep, setShowLiveSellPrep] = useState(false); // Vista de preparación de LiveSell
   const [returnToLiveSellPrep, setReturnToLiveSellPrep] = useState(false); // Flag para volver a LiveSellPrep después de capturar
@@ -644,6 +645,7 @@ const LiveShoppingApp = () => {
     setShowPieceEditor(false);
     setEditingPiece(null);
     
+    // Volver al panel de galería si estaba abierto
     // Si venimos de LiveSellPrep, volver a esa vista
     if (returnToLiveSellPrep) {
       setShowLiveSellPrep(true);
@@ -713,9 +715,7 @@ const LiveShoppingApp = () => {
     // Cerrar la cámara
     closeCameraCapture();
     
-    // Abrir editor para agregar descripción y precio
-    setEditingPiece(newPiece);
-    setShowPieceEditor(true);
+    // NO abrir el editor automáticamente, dejar que el usuario lo abra desde el panel de piezas
   };
 
   const closeCameraCapture = () => {
@@ -1578,8 +1578,7 @@ const LiveShoppingApp = () => {
           <button
             onClick={() => {
               if (promoteImages.length > 0) {
-                setEditingPiece(promoteImages[0]);
-                setShowPieceEditor(true);
+                setShowPiecesGallery(true);
               }
             }}
             className="w-[52px] h-[52px] rounded-full border transition-all relative"
@@ -1633,6 +1632,120 @@ const LiveShoppingApp = () => {
                 👆 Selecciona piezas de la galería o cámara
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Panel de Galería de Piezas - Tipo WhatsApp */}
+        {showPiecesGallery && (
+          <div className="absolute inset-0 bg-black/95 backdrop-blur-md z-40 flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <button
+                onClick={() => setShowPiecesGallery(false)}
+                className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <div className="flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-pink-400" />
+                <span className="text-white font-bold text-lg">Piezas para el Live</span>
+              </div>
+              <div className="w-10" />
+            </div>
+
+            {/* Contador */}
+            <div className="px-4 py-3 bg-black/40">
+              <div className="flex items-center justify-center gap-2">
+                <div className="px-4 py-1.5 rounded-full bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/30">
+                  <span className="text-white font-bold text-sm">
+                    {promoteImages.length} {promoteImages.length === 1 ? 'pieza' : 'piezas'}
+                  </span>
+                </div>
+                <div className="px-4 py-1.5 rounded-full bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30">
+                  <span className="text-white font-bold text-sm">
+                    {promoteImages.filter(p => p.description && p.minPrice).length} configurada{promoteImages.filter(p => p.description && p.minPrice).length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid de piezas - Estilo WhatsApp */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="grid grid-cols-3 gap-2 max-w-2xl mx-auto">
+                {promoteImages.map((piece, idx) => (
+                  <div
+                    key={piece.id}
+                    onClick={() => {
+                      setEditingPiece(piece);
+                      setShowPieceEditor(true);
+                    }}
+                    className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
+                    style={{ animation: `thumbIn 0.3s ease ${idx * 40}ms both` }}
+                  >
+                    {/* Imagen */}
+                    <img
+                      src={piece.url}
+                      alt={piece.description || `Pieza ${idx + 1}`}
+                      className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                    />
+                    
+                    {/* Overlay hover */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute bottom-2 left-2 right-2">
+                        <p className="text-white text-xs font-semibold line-clamp-2">
+                          {piece.description || 'Sin descripción'}
+                        </p>
+                        {piece.minPrice && (
+                          <p className="text-green-400 text-xs font-bold mt-1">
+                            RD$ {piece.minPrice}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Badge de número */}
+                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-lg">
+                      {idx + 1}
+                    </div>
+
+                    {/* Indicador de configuración */}
+                    <div className="absolute top-2 left-2">
+                      {piece.description && piece.minPrice ? (
+                        <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-lg">
+                          <span className="text-white text-xs">✓</span>
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-yellow-500/80 flex items-center justify-center shadow-lg">
+                          <span className="text-white text-xs font-bold">!</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Botón eliminar */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removePromoteImage(piece.id);
+                      }}
+                      className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-red-500/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    >
+                      <X className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Instrucciones si no hay piezas configuradas */}
+            {promoteImages.length > 0 && promoteImages.filter(p => p.description && p.minPrice).length === 0 && (
+              <div className="px-4 pb-4">
+                <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-xl p-3 text-center">
+                  <p className="text-yellow-300 text-sm font-medium">
+                    ⚠️ Configura todas las piezas antes de transmitir
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
