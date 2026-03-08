@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Auth from './pages/Auth';
 import LiveStreamWindow from './pages/LiveStreamWindow';
 import BottomNav from './components/BottomNav';
@@ -186,81 +186,63 @@ const LiveShoppingApp = () => {
     localStorage.setItem('isPremium', isPremium.toString());
   }, [isPremium]);
 
-  // Abrir cámara cuando se activa preparación de LiveSell
+  // Función para abrir cámara (ahora se llama desde el callback ref)
+  const openLiveSellCamera = useCallback(async (videoElement) => {
+    if (!videoElement) return;
+    
+    console.log('🎥 Video element montado, abriendo cámara...');
+    
+    // Verificar si getUserMedia está disponible
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.error('❌ getUserMedia no está disponible');
+      alert('Tu navegador no soporta acceso a la cámara');
+      setShowLiveSellPrep(false);
+      return;
+    }
+    
+    try {
+      console.log('📸 Solicitando permisos de cámara y audio...');
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user' }, 
+        audio: true 
+      });
+      
+      console.log('✅ Stream obtenido:', stream.id);
+      
+      if (videoElement && !videoElement.srcObject) {
+        videoElement.srcObject = stream;
+        streamRef.current = stream;
+        console.log('✅ Stream asignado al video');
+      }
+    } catch (err) {
+      console.error('❌ Error al acceder a la cámara:', err);
+      console.error('Error name:', err.name);
+      console.error('Error message:', err.message);
+      
+      let mensaje = '🎥 No se pudo acceder a la cámara\n\n';
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        mensaje += '❌ Permiso denegado\n\n';
+        mensaje += '📋 Por favor:\n';
+        mensaje += '1. Abre la configuración de tu navegador\n';
+        mensaje += '2. Permite el acceso a cámara y micrófono\n';
+        mensaje += '3. Intenta nuevamente';
+      } else if (err.name === 'NotFoundError') {
+        mensaje += '❌ No se encontró cámara\n\n';
+        mensaje += 'Verifica que tu dispositivo tenga cámara';
+      } else {
+        mensaje += `❌ Error: ${err.name || 'Desconocido'}\n`;
+        mensaje += err.message || 'Error desconocido';
+      }
+      
+      alert(mensaje);
+      setShowLiveSellPrep(false);
+    }
+  }, []);
+
+  // Limpiar cámara cuando se cierra LiveSellPrep
   useEffect(() => {
-    if (showLiveSellPrep) {
-      const openCamera = async () => {
-        console.log('🎥 Intentando abrir cámara para LiveSell...');
-        
-        // Esperar a que el componente se renderice
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Verificar si getUserMedia está disponible
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          console.error('❌ getUserMedia no está disponible');
-          alert('Tu navegador no soporta acceso a la cámara');
-          setShowLiveSellPrep(false);
-          return;
-        }
-        
-        // Verificar que videoRef existe antes de solicitar stream
-        if (!videoRef.current) {
-          console.error('❌ videoRef.current es null después del delay');
-          console.log('⏳ Esperando un poco más...');
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
-        
-        if (!videoRef.current) {
-          console.error('❌ videoRef.current sigue siendo null');
-          alert('Error al inicializar la vista de cámara');
-          setShowLiveSellPrep(false);
-          return;
-        }
-        
-        try {
-          console.log('📸 Solicitando permisos de cámara y audio...');
-          const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'user' }, 
-            audio: true 
-          });
-          
-          console.log('✅ Stream obtenido:', stream.id);
-          
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            streamRef.current = stream;
-            console.log('✅ Stream asignado al video');
-          } else {
-            console.error('❌ videoRef.current es null al asignar stream');
-          }
-        } catch (err) {
-          console.error('❌ Error al acceder a la cámara:', err);
-          console.error('Error name:', err.name);
-          console.error('Error message:', err.message);
-          
-          let mensaje = '🎥 No se pudo acceder a la cámara\n\n';
-          
-          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-            mensaje += '❌ Permiso denegado\n\n';
-            mensaje += '📋 Por favor:\n';
-            mensaje += '1. Abre la configuración de tu navegador\n';
-            mensaje += '2. Permite el acceso a cámara y micrófono\n';
-            mensaje += '3. Intenta nuevamente';
-          } else if (err.name === 'NotFoundError') {
-            mensaje += '❌ No se encontró cámara\n\n';
-            mensaje += 'Verifica que tu dispositivo tenga cámara';
-          } else {
-            mensaje += `❌ Error: ${err.name || 'Desconocido'}\n`;
-            mensaje += err.message || 'Error desconocido';
-          }
-          
-          alert(mensaje);
-          setShowLiveSellPrep(false);
-        }
-      };
-      openCamera();
-    } else {
-      // Cerrar cámara cuando se desactiva LiveSellPrep
+    if (!showLiveSellPrep) {
       console.log('📴 Cerrando cámara...');
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => {
@@ -2494,7 +2476,12 @@ const LiveShoppingApp = () => {
       <div className="fixed inset-0 z-50 bg-black w-full h-full overflow-hidden">
         {/* Video preview full screen */}
         <video
-          ref={videoRef}
+          ref={(node) => {
+            videoRef.current = node;
+            if (node && !node.srcObject) {
+              openLiveSellCamera(node);
+            }
+          }}
           autoPlay
           playsInline
           muted
