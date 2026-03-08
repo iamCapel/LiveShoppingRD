@@ -1435,11 +1435,11 @@ const LiveShoppingApp = () => {
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent z-20">
           <button
             onClick={() => setShowLiveSellPrep(false)}
-            className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+            className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-pink-500/40 transition-all text-xl"
           >
-            <X className="w-6 h-6" />
+            ×
           </button>
-          <div className="text-white font-bold text-lg">Preparar LiveSell</div>
+          <div className="text-white font-extrabold text-lg tracking-tight" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}>Preparar LiveSell</div>
           <div className="w-10" />
         </div>
 
@@ -1456,43 +1456,53 @@ const LiveShoppingApp = () => {
               setShowLiveSellPrep(false);
               startPreLive();
             }}
-            className={`relative w-44 h-44 rounded-full flex flex-col items-center justify-center transition-all ${
-              promoteImages.length > 0
-                ? 'bg-gradient-to-br from-pink-500 to-purple-600 shadow-2xl shadow-pink-500/50 hover:scale-105 active:scale-95'
-                : 'bg-gray-600 cursor-not-allowed'
-            }`}
+            className="relative w-44 h-44 rounded-full flex flex-col items-center justify-center gap-1.5 transition-transform hover:scale-105 active:scale-95"
+            style={{
+              background: 'linear-gradient(135deg, #ec4899, #f0467a, #c026d3)',
+              backgroundSize: '200% 200%',
+              boxShadow: '0 0 0 0 rgba(236, 72, 153, 0.4), 0 12px 50px rgba(236, 72, 153, 0.6)',
+              animation: 'glowPulse 2.5s ease-in-out infinite, gradShift 4s ease infinite'
+            }}
           >
-            <Video className="w-14 h-14 text-white mb-2" />
-            <span className="text-white font-bold text-xl">COMENZAR</span>
+            <Video className="w-14 h-14 text-white" strokeWidth={1.8} />
+            <span className="text-white font-black text-xl tracking-wider" style={{ fontWeight: 900 }}>COMENZAR</span>
             {promoteImages.length > 0 && (
-              <span className="text-xs text-white/80 mt-1">{promoteImages.length} pieza{promoteImages.length > 1 ? 's' : ''}</span>
+              <span className="text-xs text-white/75 font-semibold">
+                {promoteImages.length} {promoteImages.length === 1 ? 'pieza' : 'piezas'}
+              </span>
             )}
           </button>
         </div>
 
         {/* Miniaturas de piezas seleccionadas - ARRIBA de los botones */}
         {promoteImages.length > 0 && (
-          <div className="absolute bottom-32 left-0 right-0 px-4 z-20">
+          <div className="absolute bottom-32 left-0 right-0 px-4 z-20" style={{ animation: 'fadeInUp 0.35s ease both' }}>
             <div className="max-w-md mx-auto">
-              <p className="text-white font-semibold text-xs mb-2 flex items-center gap-2 justify-center">
-                <ShoppingCart className="w-4 h-4 text-pink-400" />
-                Piezas para el Live ({promoteImages.length})
-              </p>
+              <div className="flex items-center gap-2 mb-2 justify-center">
+                <ShoppingCart className="w-3.5 h-3.5 text-pink-400" strokeWidth={2.5} />
+                <span className="text-white/70 font-bold text-[11px] tracking-wide uppercase">
+                  Piezas para el Live ({promoteImages.filter(p => p.description && p.minPrice).length})
+                </span>
+              </div>
               
               {/* Grid de miniaturas horizontal */}
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide justify-center">
+              <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide" style={{ justifyContent: promoteImages.length < 5 ? 'center' : 'flex-start' }}>
                 {promoteImages.map((piece, idx) => (
                   <div
                     key={piece.id}
-                    className="relative flex-shrink-0 group cursor-pointer"
+                    className="relative flex-shrink-0 cursor-pointer"
                     onClick={() => {
                       setEditingPiece(piece);
                       setShowPieceEditor(true);
                     }}
-                    style={{ animation: `fadeInUp 0.3s ease ${idx * 60}ms both` }}
+                    style={{ 
+                      width: 56, 
+                      height: 56,
+                      animation: `thumbIn 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) ${idx * 55}ms both`
+                    }}
                   >
                     {/* Miniatura */}
-                    <div className="w-14 h-14 rounded-lg overflow-hidden border-2 border-pink-500/30 shadow-lg hover:border-pink-500 transition-colors">
+                    <div className="w-full h-full rounded-[10px] overflow-hidden border-2 border-pink-500/35 shadow-lg shadow-black/50">
                       <img 
                         src={piece.url} 
                         alt={piece.description || `Pieza ${idx + 1}`}
@@ -1500,17 +1510,32 @@ const LiveShoppingApp = () => {
                       />
                     </div>
                     
-                    {/* Badge de número */}
-                    <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pink-500 text-white text-[9px] font-bold flex items-center justify-center shadow-lg">
+                    {/* Badge de número - top right */}
+                    <div 
+                      className="absolute -top-1 -right-1 w-[18px] h-[18px] rounded-full bg-gradient-to-br from-pink-500 to-pink-600 text-white text-[8px] font-medium flex items-center justify-center shadow-lg shadow-pink-500/50"
+                      style={{ animation: 'popIn 0.3s ease both', fontFamily: 'monospace' }}
+                    >
                       {idx + 1}
                     </div>
 
-                    {/* Indicador de completado */}
-                    {piece.description && piece.minPrice && (
-                      <div className="absolute -bottom-1 -left-1 w-4 h-4 rounded-full bg-green-500 text-white text-[10px] flex items-center justify-center shadow-lg">
-                        ✓
-                      </div>
-                    )}
+                    {/* Check badge - bottom left */}
+                    <div 
+                      className="absolute -bottom-1 -left-1 w-4 h-4 rounded-full text-white text-[10px] flex items-center justify-center shadow-md"
+                      style={{ background: piece.description && piece.minPrice ? '#22c55e' : 'rgba(255,255,255,0.15)' }}
+                    >
+                      {piece.description && piece.minPrice ? '✓' : ''}
+                    </div>
+
+                    {/* Remove button - top left */}
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removePromoteImage(piece.id);
+                      }}
+                      className="absolute -top-1 -left-1 w-3.5 h-3.5 rounded-full bg-black/80 border-none text-white text-[9px] flex items-center justify-center hover:bg-pink-600 transition-colors"
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
@@ -1518,77 +1543,94 @@ const LiveShoppingApp = () => {
           </div>
         )}
 
-        {/* BOTONES INFERIORES - Estilo ShoppingRD */}
-        <div className="absolute bottom-0 left-0 right-0 z-20 pb-6 pt-4 bg-gradient-to-t from-black via-black/90 to-transparent">
-          <div className="flex items-end justify-between px-8">
+        {/* BARRA FLOTANTE INFERIOR (Pill Style) */}
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 px-3.5 py-2 rounded-full bg-black/65 backdrop-blur-2xl border border-white/10 shadow-2xl shadow-black/55">
+          
+          {/* Botón GALERÍA */}
+          <button
+            onClick={() => {
+              setReturnToLiveSellPrep(true);
+              imageInputRef.current?.click();
+            }}
+            className="w-[52px] h-[52px] rounded-full bg-white/[0.07] border border-white/[0.12] flex flex-col items-center justify-center gap-0.5 transition-all hover:bg-pink-500/20 hover:border-pink-500/40"
+          >
+            <span className="text-[22px]">🖼️</span>
+            <span className="text-[9px] font-bold text-white/45 tracking-[0.5px] uppercase" style={{ fontFamily: 'system-ui' }}>Galería</span>
+          </button>
+
+          {/* Divider */}
+          <div className="w-px h-[30px] bg-white/12 flex-shrink-0" />
+
+          {/* Botón CAPTURAR (centro - hero) */}
+          <button
+            onClick={() => {
+              setReturnToLiveSellPrep(true);
+              setShowCameraCapture(true);
+              setShowLiveSellPrep(false);
+            }}
+            className="w-[68px] h-[68px] rounded-full border-[3px] border-white/28 flex flex-col items-center justify-center gap-0.5 flex-shrink-0 transition-transform hover:scale-110"
+            style={{
+              background: 'linear-gradient(135deg, #c026d3, #ec4899, #f0467a)',
+              boxShadow: '0 4px 24px rgba(236, 72, 153, 0.6)',
+              animation: 'glowPulse 3s ease-in-out infinite'
+            }}
+          >
+            <span className="text-[26px]">📸</span>
+            <span className="text-[8px] font-bold text-white/80 tracking-[0.5px] uppercase" style={{ fontFamily: 'system-ui' }}>Capturar</span>
+          </button>
+
+          {/* Divider */}
+          <div className="w-px h-[30px] bg-white/12 flex-shrink-0" />
+
+          {/* Botón PIEZAS */}
+          <button
+            onClick={() => {
+              if (promoteImages.length > 0) {
+                setEditingPiece(promoteImages[0]);
+                setShowPieceEditor(true);
+              }
+            }}
+            className="w-[52px] h-[52px] rounded-full border transition-all relative"
+            style={{
+              background: promoteImages.length > 0 ? 'rgba(236, 72, 153, 0.22)' : 'rgba(255, 255, 255, 0.07)',
+              borderColor: promoteImages.length > 0 ? 'rgba(236, 72, 153, 0.55)' : 'rgba(255, 255, 255, 0.12)'
+            }}
+          >
+            {/* Badge contador */}
+            {promoteImages.length > 0 && (
+              <div 
+                className="absolute top-1 right-2 min-w-[18px] h-[18px] rounded-full bg-gradient-to-br from-pink-500 to-purple-600 px-1 flex items-center justify-center text-[9px] font-bold text-white shadow-lg shadow-pink-500/50"
+                style={{ animation: 'popIn 0.3s ease both', fontFamily: 'monospace' }}
+              >
+                {promoteImages.length}
+              </div>
+            )}
             
-            {/* Botón GALERÍA (izquierda) */}
-            <button
-              onClick={() => {
-                setReturnToLiveSellPrep(true);
-                imageInputRef.current?.click();
-              }}
-              className="flex flex-col items-center gap-2 group"
-              style={{ minWidth: '70px' }}
-            >
-              <div className="w-12 h-12 rounded-xl bg-blue-500/10 border-2 border-blue-500/30 flex items-center justify-center text-2xl transition-all group-hover:bg-blue-500/20 group-hover:border-blue-500 group-hover:scale-110">
-                🖼️
-              </div>
-              <span className="text-[10px] font-bold text-white/50 tracking-wider uppercase">Galería</span>
-            </button>
-
-            {/* Botón CAPTURAR (centro) - Circular grande */}
-            <button
-              onClick={() => {
-                setReturnToLiveSellPrep(true);
-                setShowCameraCapture(true);
-                setShowLiveSellPrep(false);
-              }}
-              className="flex flex-col items-center gap-2 -mb-2"
-            >
-              {/* Anillo exterior */}
-              <div className="w-20 h-20 rounded-full border-[3px] border-pink-500/50 p-1 flex items-center justify-center group-hover:scale-110 transition-transform">
-                {/* Botón interior */}
-                <div className="w-full h-full rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-3xl shadow-lg shadow-pink-500/50">
-                  📸
-                </div>
-              </div>
-              <span className="text-[10px] font-bold text-white/50 tracking-wider uppercase">Capturar</span>
-            </button>
-
-            {/* Botón CAPTURAS (derecha) */}
-            <button
-              onClick={() => {
-                if (promoteImages.length > 0) {
-                  setEditingPiece(promoteImages[0]);
-                  setShowPieceEditor(true);
-                }
-              }}
-              className="flex flex-col items-center gap-2 group relative"
-              style={{ minWidth: '70px' }}
-            >
-              {/* Badge contador */}
-              {promoteImages.length > 0 && (
-                <div className="absolute -top-0.5 -right-1 min-w-[18px] h-[18px] rounded-full bg-gradient-to-br from-pink-500 to-purple-600 px-1 flex items-center justify-center text-[9px] font-bold text-white shadow-lg shadow-pink-500/50 z-10">
-                  {promoteImages.length}
-                </div>
-              )}
-              
-              {/* Grid 2x2 mini */}
-              <div className="w-12 h-12 rounded-xl bg-pink-500/10 border-2 border-pink-500/30 grid grid-cols-2 gap-0.5 p-2 transition-all group-hover:bg-pink-500/20 group-hover:border-pink-500 group-hover:scale-110">
-                {[0,1,2,3].map(i => (
+            {/* Grid 2x2 */}
+            <div className="flex flex-col items-center justify-center gap-0.5 w-full h-full">
+              <div className="grid grid-cols-2 gap-0.5 w-[22px] h-[22px]">
+                {['#ec4899', '#f0467a', '#ff8fab', '#c026d3'].map((color, i) => (
                   <div 
                     key={i} 
-                    className="rounded-sm bg-gradient-to-br from-pink-500 to-purple-600" 
-                    style={{ opacity: promoteImages.length > 0 ? 1 : 0.3 }}
+                    className="rounded-[2px]" 
+                    style={{ 
+                      background: color, 
+                      opacity: promoteImages.length > 0 ? 1 : 0.6 
+                    }}
                   />
                 ))}
               </div>
-              <span className={`text-[10px] font-bold tracking-wider uppercase ${promoteImages.length > 0 ? 'text-pink-400' : 'text-white/50'}`}>
+              <span 
+                className="text-[9px] font-bold tracking-[0.5px] uppercase" 
+                style={{ 
+                  color: promoteImages.length > 0 ? '#f0467a' : 'rgba(255, 255, 255, 0.45)',
+                  fontFamily: 'system-ui'
+                }}
+              >
                 Piezas
               </span>
-            </button>
-          </div>
+            </div>
+          </button>
         </div>
 
         {/* Mensaje si no hay piezas */}
