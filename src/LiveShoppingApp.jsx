@@ -1440,7 +1440,30 @@ const LiveShoppingApp = () => {
             ×
           </button>
           <div className="text-white font-extrabold text-lg tracking-tight" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}>Preparar LiveSell</div>
-          <div className="w-10" />
+          
+          {/* Botón TRANSMITIR - top right */}
+          <button
+            onClick={() => {
+              if (promoteImages.length === 0) {
+                alert('⚠️ Agrega al menos una pieza desde la galería antes de comenzar');
+                return;
+              }
+              setShowLiveSellPrep(false);
+              startPreLive();
+            }}
+            className="px-5 py-2.5 rounded-full flex items-center gap-2 transition-transform hover:scale-105 active:scale-95"
+            style={{
+              background: 'linear-gradient(135deg, #dc2626, #ef4444, #b91c1c)',
+              backgroundSize: '200% 200%',
+              boxShadow: '0 0 0 0 rgba(220, 38, 38, 0.4), 0 6px 24px rgba(220, 38, 38, 0.6)',
+              animation: 'glowPulseRed 2.5s ease-in-out infinite, gradShift 4s ease infinite'
+            }}
+          >
+            <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+            <span className="text-white font-black text-sm tracking-wider" style={{ fontWeight: 900 }}>
+              TRANSMITIR
+            </span>
+          </button>
         </div>
 
         {/* Botón "COMENZAR" en el centro */}

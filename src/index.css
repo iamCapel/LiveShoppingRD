@@ -74,6 +74,15 @@
   }
 }
 
+@keyframes glowPulseRed {
+  0%, 100% {
+    box-shadow: 0 0 16px 0 rgba(220, 38, 38, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 42px 10px rgba(220, 38, 38, 0.7);
+  }
+}
+
 @keyframes gradShift {
   0% {
     background-position: 0% 50%;
