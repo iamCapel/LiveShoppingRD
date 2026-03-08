@@ -143,6 +143,7 @@ const LiveShoppingApp = () => {
   const [cameraFacingMode, setCameraFacingMode] = useState('user'); // 'user' (frontal) o 'environment' (trasera)
   const [flashEnabled, setFlashEnabled] = useState(false); // Estado del flash
   const [showEffects, setShowEffects] = useState(false); // Panel de efectos y lentes
+  const [isSwitchingCamera, setIsSwitchingCamera] = useState(false); // Animación de cambio de cámara
   
   // Estados para efecto parallax con giroscopio
   const [gyroX, setGyroX] = useState(0);
@@ -290,6 +291,7 @@ const LiveShoppingApp = () => {
 
   // Función para cambiar entre cámara frontal y trasera
   const toggleCamera = useCallback(async () => {
+    setIsSwitchingCamera(true);
     const newFacingMode = cameraFacingMode === 'user' ? 'environment' : 'user';
     
     // Detener stream actual
@@ -312,6 +314,8 @@ const LiveShoppingApp = () => {
     } catch (err) {
       console.error('Error al cambiar cámara:', err);
       alert('No se pudo cambiar de cámara');
+    } finally {
+      setTimeout(() => setIsSwitchingCamera(false), 600);
     }
   }, [cameraFacingMode]);
 
@@ -1521,6 +1525,9 @@ const LiveShoppingApp = () => {
           playsInline
           muted
           className="absolute inset-0 w-full h-full object-cover"
+          style={{
+            transform: cameraFacingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)'
+          }}
         />
         
         {/* Overlay oscuro sutil */}
@@ -1542,11 +1549,22 @@ const LiveShoppingApp = () => {
               onClick={toggleCamera}
               className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 3h6v6"></path>
-                <path d="M9 21H3v-6"></path>
-                <path d="M21 3l-7 7"></path>
-                <path d="M3 21l7-7"></path>
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="22" 
+                height="22" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                className={isSwitchingCamera ? 'animate-camera-flip' : ''}
+              >
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path>
+                <circle cx="12" cy="13" r="3"></circle>
+                <path d="M16 6h.01"></path>
+                <path d="M2 13l3-3m17 0l-3 3" strokeWidth="1.5"></path>
               </svg>
             </button>
 

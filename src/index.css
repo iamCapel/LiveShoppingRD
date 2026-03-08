@@ -107,6 +107,22 @@
   }
 }
 
+@keyframes camera-flip {
+  0% {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(180deg);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+
+.animate-camera-flip {
+  animation: camera-flip 0.6s ease-in-out;
+}
+
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
