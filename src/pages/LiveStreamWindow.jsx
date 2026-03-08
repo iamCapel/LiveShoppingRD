@@ -903,6 +903,115 @@ export default function LiveStreamWindow({
           letter-spacing: 1px;
         }
         .sold-congrats { font-size: 20px; }
+
+        /* ── FLOATING PIECES (WhatsApp style) ── */
+        .floating-pieces {
+          position: absolute;
+          right: 12px;
+          top: 80px;
+          bottom: 200px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          z-index: 30;
+          overflow-y: auto;
+          scrollbar-width: none;
+        }
+        .floating-pieces::-webkit-scrollbar { display: none; }
+        
+        .floating-piece-item {
+          width: 70px;
+          height: 116px;
+          position: relative;
+          cursor: pointer;
+          border-radius: 14px;
+          overflow: hidden;
+          border: 3px solid rgba(255,255,255,0.95);
+          box-shadow: 0 4px 16px rgba(0,0,0,0.5), 
+                      0 0 0 1px rgba(0,0,0,0.2);
+          transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+          background: #000;
+        }
+        .floating-piece-item:hover {
+          transform: scale(1.1);
+          border-color: #FF2D55;
+        }
+        .floating-piece-item.sold-piece {
+          opacity: 0.5;
+          border-color: rgba(150,150,150,0.4);
+          filter: grayscale(0.7);
+        }
+        .floating-piece-item.active-piece {
+          border-color: #00FFA3;
+          box-shadow: 0 0 24px rgba(0,255,163,0.6),
+                      0 4px 16px rgba(0,0,0,0.5);
+          animation: pulsePiece 1.5s ease-in-out infinite;
+        }
+        @keyframes pulsePiece {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.08); }
+        }
+        
+        .floating-piece-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        
+        .floating-piece-price {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+          padding: 4px 6px 6px;
+          font-size: 10px;
+          font-weight: 700;
+          color: #00FFA3;
+          text-align: center;
+          font-family: 'Bebas Neue';
+          letter-spacing: 0.5px;
+        }
+        
+        .floating-piece-badge {
+          position: absolute;
+          top: 4px;
+          left: 4px;
+          background: rgba(0,0,0,0.75);
+          backdrop-filter: blur(4px);
+          color: #fff;
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 9px;
+          font-weight: 700;
+          border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .floating-piece-sold-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0,0,0,0.75);
+          display: flex;
+          align-items: center;
+          justify-center;
+          font-size: 20px;
+        }
+        
+        .floating-piece-active-indicator {
+          position: absolute;
+          top: 4px;
+          right: 4px;
+          width: 10px;
+          height: 10px;
+          background: #00FFA3;
+          border-radius: 50%;
+          border: 2px solid #fff;
+          animation: blink 1s infinite;
+        }
       `}</style>
 
       <div className="live-root">
@@ -939,6 +1048,39 @@ export default function LiveStreamWindow({
               />
             </div>
             <div className="video-grid-overlay" />
+
+            {/* FLOATING PIECES - WhatsApp Style */}
+            <div className="floating-pieces">
+              {pieces.map((piece, index) => {
+                const pieceId = piece.id || index;
+                const isSold = soldPieces.has(pieceId);
+                const isActive = auctionPiece && (auctionPiece.id === pieceId || pieces.indexOf(auctionPiece) === index);
+                
+                return (
+                  <div
+                    key={index}
+                    className={`floating-piece-item ${isSold ? "sold-piece" : ""} ${isActive ? "active-piece" : ""}`}
+                    onClick={() => !isSold && !isActive && setSelectedPiece({ ...piece, id: pieceId })}
+                  >
+                    <img 
+                      src={piece.url} 
+                      alt={piece.description} 
+                      className="floating-piece-img" 
+                    />
+                    <div className="floating-piece-badge">{index + 1}</div>
+                    <div className="floating-piece-price">
+                      ${(piece.minPrice / 1000).toFixed(0)}k
+                    </div>
+                    {isActive && <div className="floating-piece-active-indicator" />}
+                    {isSold && (
+                      <div className="floating-piece-sold-overlay">
+                        ✓
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
 
             {/* Recently Sold Strip */}
             {recentlySold.length > 0 && (

@@ -2474,7 +2474,7 @@ const LiveShoppingApp = () => {
   if (showLiveSellPrep) {
     return (
       <div className="fixed inset-0 z-50 bg-black w-full h-full overflow-hidden">
-        {/* Video preview full screen */}
+        {/* Video cámara en vivo de fondo */}
         <video
           ref={(node) => {
             videoRef.current = node;
@@ -2488,127 +2488,156 @@ const LiveShoppingApp = () => {
           className="absolute inset-0 w-full h-full object-cover"
         />
         
-        {/* Overlay con controles */}
-        <div className="absolute inset-0 flex flex-col w-full h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
-            <button
-              onClick={() => setShowLiveSellPrep(false)}
-              className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <div className="text-white font-bold text-lg flex items-center gap-2">
-              <Video className="w-6 h-6 text-pink-500" />
-              Preparar LiveSell
-            </div>
-            <div className="w-10" /> {/* Spacer */}
-          </div>
+        {/* Overlay oscuro sutil */}
+        <div className="absolute inset-0 bg-black/20" />
+        
+        {/* Header */}
+        <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent z-20">
+          <button
+            onClick={() => setShowLiveSellPrep(false)}
+            className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <div className="text-white font-bold text-lg">Preparar LiveSell</div>
+          <div className="w-10" />
+        </div>
 
-          {/* Área central con instrucciones y galería */}
-          <div className="flex-1 overflow-y-auto p-4 pb-40">
-            <div className="max-w-md mx-auto space-y-4">
-              {/* Instrucciones */}
-              <div className="bg-black/60 backdrop-blur-md rounded-2xl p-6 border border-white/10">
-                <h2 className="text-white font-bold text-xl mb-2 flex items-center gap-2">
-                  <Camera className="w-6 h-6 text-pink-500" />
-                  Selecciona tus piezas
-                </h2>
-                <p className="text-gray-300 text-sm mb-4">
-                  Escoge las piezas que vas a mostrar en tu transmisión en vivo
-                </p>
-                
-                {/* Botones de acción */}
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => {
-                      setReturnToLiveSellPrep(true);
-                      setShowCameraCapture(true);
-                      setShowLiveSellPrep(false);
-                    }}
-                    className="bg-pink-500 hover:bg-pink-600 text-white py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
-                  >
-                    <Camera className="w-5 h-5" />
-                    Tomar Foto
-                  </button>
-                  <button
-                    onClick={() => {
-                      setReturnToLiveSellPrep(true);
-                      imageInputRef.current?.click();
-                    }}
-                    className="bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 text-white py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
-                  >
-                    <Image className="w-5 h-5" />
-                    Galería
-                  </button>
-                </div>
-              </div>
-
-              {/* Lista de piezas agregadas */}
-              {promoteImages.length > 0 ? (
-                <div className="bg-black/60 backdrop-blur-md rounded-2xl p-6 border border-white/10">
-                  <h3 className="text-white font-bold mb-3 flex items-center gap-2">
-                    <ShoppingCart className="w-5 h-5 text-pink-500" />
-                    Piezas seleccionadas ({promoteImages.length})
-                  </h3>
-                  <div className="grid grid-cols-3 gap-3">
-                    {promoteImages.map((piece) => (
-                      <div key={piece.id} className="relative group">
-                        <img 
-                          src={piece.url} 
-                          alt={piece.description}
-                          className="w-full aspect-square object-cover rounded-lg border border-white/20"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                          <p className="text-white text-xs font-medium truncate">
-                            {piece.description}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-black/40 backdrop-blur-md rounded-2xl p-8 border border-white/10 border-dashed text-center">
-                  <ShoppingCart className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                  <p className="text-gray-400 text-sm">
-                    Aún no has agregado piezas
-                  </p>
-                  <p className="text-gray-500 text-xs mt-1">
-                    Agrega al menos una pieza para iniciar
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Botón de iniciar transmisión fijo en la parte inferior */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 via-black/80 to-transparent">
+        {/* Botón "COMENZAR" en el centro */}
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <div className="relative">
+            {/* Botón central COMENZAR */}
             <button
               onClick={() => {
                 if (promoteImages.length === 0) {
-                  alert('Debes agregar al menos una pieza antes de iniciar la transmisión');
+                  alert('⚠️ Agrega al menos una pieza desde la galería antes de comenzar');
                   return;
                 }
-                // Preparar para iniciar el live
+                // Iniciar el Live
                 setShowLiveSellPrep(false);
                 startPreLive();
               }}
-              disabled={promoteImages.length === 0}
-              className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${
+              className={`relative w-40 h-40 rounded-full flex flex-col items-center justify-center transition-all ${
                 promoteImages.length > 0
-                  ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/50 hover:shadow-xl hover:shadow-pink-500/70 hover:scale-[1.02]'
-                  : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                  ? 'bg-gradient-to-br from-pink-500 to-purple-600 shadow-2xl shadow-pink-500/50 hover:scale-105 active:scale-95'
+                  : 'bg-gray-600 cursor-not-allowed'
               }`}
             >
-              <Video className="w-6 h-6" />
-              {promoteImages.length > 0 
-                ? `Iniciar Live con ${promoteImages.length} pieza${promoteImages.length > 1 ? 's' : ''}`
-                : 'Agrega piezas para continuar'
-              }
+              <Video className="w-12 h-12 text-white mb-2" />
+              <span className="text-white font-bold text-lg">COMENZAR</span>
+              {promoteImages.length > 0 && (
+                <span className="text-xs text-white/80 mt-1">{promoteImages.length} pieza{promoteImages.length > 1 ? 's' : ''}</span>
+              )}
+            </button>
+
+            {/* Botones flotantes alrededor del botón central */}
+            
+            {/* Botón: Seleccionar de Galería (arriba izquierda) */}
+            <button
+              onClick={() => {
+                setReturnToLiveSellPrep(true);
+                imageInputRef.current?.click();
+              }}
+              className="absolute -top-24 -left-24 w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 shadow-xl shadow-blue-500/50 flex flex-col items-center justify-center text-white hover:scale-110 transition-transform"
+            >
+              <Image className="w-7 h-7 mb-1" />
+              <span className="text-xs font-semibold">Galería</span>
+            </button>
+
+            {/* Botón: Tomar Foto (arriba derecha) */}
+            <button
+              onClick={() => {
+                setReturnToLiveSellPrep(true);
+                setShowCameraCapture(true);
+                setShowLiveSellPrep(false);
+              }}
+              className="absolute -top-24 -right-24 w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-xl shadow-purple-500/50 flex flex-col items-center justify-center text-white hover:scale-110 transition-transform"
+            >
+              <Camera className="w-7 h-7 mb-1" />
+              <span className="text-xs font-semibold">Cámara</span>
             </button>
           </div>
         </div>
+
+        {/* Miniaturas de piezas seleccionadas en la parte inferior */}
+        {promoteImages.length > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 via-black/70 to-transparent z-20">
+            <div className="max-w-md mx-auto">
+              <p className="text-white font-semibold text-sm mb-3 flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-pink-400" />
+                Piezas para el Live ({promoteImages.length})
+              </p>
+              
+              {/* Grid de miniaturas deslizable horizontalmente */}
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {promoteImages.map((piece, idx) => (
+                  <div
+                    key={piece.id}
+                    className="relative flex-shrink-0 group"
+                    onClick={() => {
+                      setEditingPiece(piece);
+                      setShowPieceEditor(true);
+                      setShowLiveSellPrep(false);
+                    }}
+                  >
+                    {/* Miniatura */}
+                    <div className="w-24 h-24 rounded-xl overflow-hidden border-2 border-white/30 shadow-lg">
+                      <img 
+                        src={piece.url} 
+                        alt={piece.description || `Pieza ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    
+                    {/* Info flotante */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent rounded-xl flex flex-col justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <p className="text-white text-xs font-bold truncate">
+                        {piece.description || 'Sin descripción'}
+                      </p>
+                      {piece.minPrice && (
+                        <p className="text-green-400 text-xs font-semibold">
+                          ${piece.minPrice}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Badge de número */}
+                    <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-pink-500 text-white text-xs font-bold flex items-center justify-center shadow-lg">
+                      {idx + 1}
+                    </div>
+
+                    {/* Botón eliminar */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPromoteImages(promoteImages.filter(p => p.id !== piece.id));
+                      }}
+                      className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Hint */}
+              <p className="text-gray-400 text-xs mt-3 text-center">
+                Toca una pieza para editar precio y detalles
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Mensaje si no hay piezas */}
+        {promoteImages.length === 0 && (
+          <div className="absolute bottom-20 left-0 right-0 flex justify-center z-20">
+            <div className="bg-yellow-500/20 backdrop-blur-md border border-yellow-500/40 rounded-2xl py-3 px-6 mx-4">
+              <p className="text-yellow-300 text-sm text-center font-medium">
+                👆 Selecciona piezas de la galería o cámara
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
