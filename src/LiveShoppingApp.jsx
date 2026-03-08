@@ -190,26 +190,66 @@ const LiveShoppingApp = () => {
   useEffect(() => {
     if (showLiveSellPrep) {
       const openCamera = async () => {
+        console.log('🎥 Intentando abrir cámara para LiveSell...');
+        
+        // Verificar si getUserMedia está disponible
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          console.error('❌ getUserMedia no está disponible');
+          alert('Tu navegador no soporta acceso a la cámara');
+          setShowLiveSellPrep(false);
+          return;
+        }
+        
         try {
+          console.log('📸 Solicitando permisos de cámara y audio...');
           const stream = await navigator.mediaDevices.getUserMedia({ 
             video: { facingMode: 'user' }, 
             audio: true 
           });
+          
+          console.log('✅ Stream obtenido:', stream.id);
+          
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
             streamRef.current = stream;
+            console.log('✅ Stream asignado al video');
+          } else {
+            console.error('❌ videoRef.current es null');
           }
         } catch (err) {
-          console.error('Error al acceder a la cámara:', err);
-          alert('No se pudo acceder a la cámara. Por favor, verifica los permisos.');
+          console.error('❌ Error al acceder a la cámara:', err);
+          console.error('Error name:', err.name);
+          console.error('Error message:', err.message);
+          
+          let mensaje = '🎥 No se pudo acceder a la cámara\n\n';
+          
+          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            mensaje += '❌ Permiso denegado\n\n';
+            mensaje += '📋 Por favor:\n';
+            mensaje += '1. Abre la configuración de tu navegador\n';
+            mensaje += '2. Permite el acceso a cámara y micrófono\n';
+            mensaje += '3. Intenta nuevamente';
+          } else if (err.name === 'NotFoundError') {
+            mensaje += '❌ No se encontró cámara\n\n';
+            mensaje += 'Verifica que tu dispositivo tenga cámara';
+          } else {
+            mensaje += `❌ Error: ${err.name || 'Desconocido'}\n`;
+            mensaje += err.message || 'Error desconocido';
+          }
+          
+          alert(mensaje);
           setShowLiveSellPrep(false);
         }
       };
       openCamera();
     } else {
       // Cerrar cámara cuando se desactiva LiveSellPrep
+      console.log('📴 Cerrando cámara...');
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach(track => {
+          track.stop();
+          console.log('⏹️ Track detenido:', track.kind);
+        });
         streamRef.current = null;
       }
       if (videoRef.current) {
@@ -1476,7 +1516,16 @@ const LiveShoppingApp = () => {
                 </div>
                 
                 {/* Carousel de imágenes con swipe */}
-                <div className="relative bg-gray-900 w-full overflow-hidden">
+                <div 
+                  className="relative bg-gray-900 w-full overflow-hidden cursor-pointer"
+                  onClick={() => {
+                    if (post.countdown <= 0) {
+                      setViewingLive(post);
+                    } else {
+                      alert(`La transmisión comienza en ${formatCountdown(post.countdown)}`);
+                    }
+                  }}
+                >
                   <div className="relative aspect-square overflow-hidden">
                     <div 
                       className="flex h-full transition-transform duration-300 ease-out touch-pan-y"
@@ -1519,6 +1568,16 @@ const LiveShoppingApp = () => {
                         <div key={idx} className="w-full h-full flex-shrink-0 relative">
                           <img src={img} alt="" className="w-full h-full object-cover pointer-events-none" loading="lazy" />
                           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30 pointer-events-none" />
+                          
+                          {/* Indicador de "Ver Live" cuando está disponible */}
+                          {post.countdown <= 0 && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                              <div className="bg-red-500 px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-pulse">
+                                <Video className="w-8 h-8 text-white" />
+                                <span className="text-white font-black text-2xl">VER LIVE</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
