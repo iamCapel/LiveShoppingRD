@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import logo from '../assets/liveshopping-logo.png';
-import neonBg from '../assets/neon-background.jpg';
+import livesellPattern from '../assets/livesell-pattern.jpg';
+import livesellLogo from '../assets/livesell-logo.png';
 import { FaGoogle, FaFacebookF, FaPhone } from 'react-icons/fa';
 
 interface AuthProps {
@@ -21,7 +22,7 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Efecto 3D de movimiento del fondo
+  // Efecto 3D de movimiento del fondo con mouse y giroscopio
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       const x = (e.clientX / window.innerWidth - 0.5) * 20;
@@ -29,8 +30,24 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
       setMousePosition({ x, y });
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+      if (e.beta !== null && e.gamma !== null) {
+        // beta: inclinación adelante-atrás (-180 a 180)
+        // gamma: inclinación izquierda-derecha (-90 a 90)
+        const x = (e.gamma / 90) * 20;
+        const y = (e.beta / 180) * 20;
+        setMousePosition({ x, y });
+      }
+    };
+
+    // Detectar si es dispositivo móvil y usar giroscopio, sino usar mouse
+    if (window.DeviceOrientationEvent && /Mobi|Android/i.test(navigator.userAgent)) {
+      window.addEventListener('deviceorientation', handleOrientation);
+      return () => window.removeEventListener('deviceorientation', handleOrientation);
+    } else {
+      window.addEventListener('mousemove', handleMouseMove);
+      return () => window.removeEventListener('mousemove', handleMouseMove);
+    }
   }, []);
 
   const validate = () => {
@@ -70,30 +87,27 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
 
   return (
     <div ref={containerRef} className="relative flex flex-col items-center justify-center min-h-screen overflow-hidden">
-      {/* Fondo de neón con efecto 3D */}
+      {/* Fondo de patrón LiveSell con efecto 3D */}
       <div 
         className="absolute inset-0 bg-cover bg-center transition-transform duration-300 ease-out"
         style={{
-          backgroundImage: `url(${neonBg})`,
+          backgroundImage: `url(${livesellPattern})`,
           transform: `translate(${mousePosition.x}px, ${mousePosition.y}px) scale(1.1)`,
-          filter: 'brightness(0.7)',
+          filter: 'brightness(0.85)',
         }}
       />
       
       {/* Overlay oscuro para mejor legibilidad */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/40" />
       
       {/* Contenido del formulario */}
-      <div className="relative z-10 bg-white/5 backdrop-blur-md p-8 w-full max-w-md">
-        <div className="flex flex-col items-center mb-6">
-          <div className="bg-white/10 backdrop-blur-sm p-4 rounded-full mb-2">
-            <img src={logo} alt="LiveShoppingRD Logo" className="w-20 h-20" />
+      <div className="relative z-10 bg-white/5 p-8 w-full max-w-md">
+        <div className="flex flex-col items-center mb-3 space-y-4">
+          <div className="bg-white/10 p-2 rounded-full">
+            <img src={logo} alt="LiveSell Logo" className="w-20 h-20" />
           </div>
-          <h1 className="text-3xl font-bold text-white drop-shadow-lg flex items-center gap-1">
-            <span className="bg-gradient-to-r from-red-500 to-pink-500 px-3 py-1 rounded-lg text-white font-bold uppercase tracking-wider transform -skew-x-6 shadow-lg" style={{ fontFamily: "'Arial Black', sans-serif" }}>
-              LIVE
-            </span>
-            <span className="italic" style={{ fontFamily: "'Playfair Display', serif" }}>ShoppingRD</span>
+          <h1 className="text-5xl font-bold text-white drop-shadow-lg">
+            <img src={livesellLogo} alt="LiveSell" className="w-96 h-auto" />
           </h1>
         </div>
         <h2 className="text-3xl font-bold mb-6 text-center text-white drop-shadow-lg">
@@ -101,13 +115,13 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
         </h2>
         {/* Botones de registro social */}
         <div className="flex justify-center gap-4 mb-4">
-          <button type="button" className="bg-white/10 backdrop-blur-sm rounded-full p-3 hover:bg-white/20 transition-all hover:scale-110">
+          <button type="button" className="bg-white/10 rounded-full p-3 hover:bg-white/20 transition-all hover:scale-110">
             <FaGoogle className="w-5 h-5 text-white drop-shadow" />
           </button>
-          <button type="button" className="bg-white/10 backdrop-blur-sm rounded-full p-3 hover:bg-white/20 transition-all hover:scale-110">
+          <button type="button" className="bg-white/10 rounded-full p-3 hover:bg-white/20 transition-all hover:scale-110">
             <FaPhone className="w-5 h-5 text-white drop-shadow" />
           </button>
-          <button type="button" className="bg-white/10 backdrop-blur-sm rounded-full p-3 hover:bg-white/20 transition-all hover:scale-110">
+          <button type="button" className="bg-white/10 rounded-full p-3 hover:bg-white/20 transition-all hover:scale-110">
             <FaFacebookF className="w-5 h-5 text-white drop-shadow" />
           </button>
         </div>
@@ -119,7 +133,7 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
                 placeholder="Nombre completo"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
+                className="w-full px-4 py-3 bg-white/10 rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
                 required
               />
               <input
@@ -127,13 +141,13 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
                 placeholder="Nombre de usuario"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
+                className="w-full px-4 py-3 bg-white/10 rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
                 required
               />
               <select
                 value={userType}
                 onChange={e => setUserType(e.target.value)}
-                className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
+                className="w-full px-4 py-3 bg-white/10 rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
                 required
               >
                 <option value="" className="bg-gray-800">¿Vas a vender o comprar?</option>
@@ -145,7 +159,7 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
                 placeholder="Número de teléfono"
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
-                className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
+                className="w-full px-4 py-3 bg-white/10 rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
                 required
               />
             </>
@@ -155,7 +169,7 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
             placeholder="Correo electrónico"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
+            className="w-full px-4 py-3 bg-white/10 rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
             required
           />
           <input
@@ -163,7 +177,7 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
             placeholder="Contraseña"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
+            className="w-full px-4 py-3 bg-white/10 rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
             required
           />
           <button
@@ -177,8 +191,8 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
             {isLogin ? 'Entrar' : 'Crear cuenta'}
           </button>
         </form>
-        {error && <div className="mt-2 text-red-300 bg-red-500/20 backdrop-blur-sm rounded-lg p-2 text-center text-sm">{error}</div>}
-        {success && <div className="mt-2 text-green-300 bg-green-500/20 backdrop-blur-sm rounded-lg p-2 text-center text-sm">{success}</div>}
+        {error && <div className="mt-2 text-red-300 bg-red-500/20 rounded-lg p-2 text-center text-sm">{error}</div>}
+        {success && <div className="mt-2 text-green-300 bg-green-500/20 rounded-lg p-2 text-center text-sm">{success}</div>}
         <div className="mt-4 text-center">
           <button
             className="text-white hover:text-pink-300 transition-colors font-medium drop-shadow"

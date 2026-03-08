@@ -170,66 +170,6 @@ export default function LiveStreamWindow({
           box-sizing: border-box;
         }
 
-        html, body {
-          width: 100%;
-          height: 100%;
-          overflow: hidden;
-          background: #000;
-        }
-
-        body {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        .phone {
-          width: 100%;
-          height: 100vh;
-          margin: 0;
-          position: relative;
-          background: #1C1C1C;
-          overflow-y: scroll;
-          overflow-x: hidden;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        .phone::-webkit-scrollbar {
-          width: 4px;
-        }
-
-        .phone::-webkit-scrollbar-track {
-          background: rgba(255,255,255,0.05);
-        }
-
-        .phone::-webkit-scrollbar-thumb {
-          background: rgba(217,48,37,0.4);
-          border-radius: 10px;
-        }
-
-        .phone-content {
-          min-height: 300vh;
-          position: relative;
-        }
-
-        .video-feed {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 100vh;
-          background: #1C1C1C;
-          overflow: hidden;
-        }
-
-        .vignette {
-          position: absolute;
-          inset: 0;
-          z-index: 2;
-          background: radial-gradient(ellipse 80% 80% at 50% 45%, transparent 30%, rgba(0,0,0,0.5) 100%);
-          pointer-events: none;
-        }
-
         .model-area {
           position: absolute;
           bottom: 155px;
@@ -906,11 +846,12 @@ export default function LiveStreamWindow({
         }
       `}</style>
 
-      <div className="phone">
-        <div className="phone-content">
+      <div className="min-h-screen w-full bg-[#1C1C1C] overflow-x-hidden overflow-y-auto">
+        <div className="relative min-h-[300vh]">
           {/* VIDEO */}
-          <div className="video-feed">
-          <div className="vignette"></div>
+          <div className="fixed top-0 left-0 right-0 h-screen bg-[#1C1C1C] overflow-hidden">
+          <div className="absolute inset-0 z-[2] pointer-events-none" 
+               style={{background: 'radial-gradient(ellipse 80% 80% at 50% 45%, transparent 30%, rgba(0,0,0,0.5) 100%)'}}></div>
           <div className="model-area">
             <svg viewBox="0 0 180 320" fill="none" xmlns="http://www.w3.org/2000/svg">
               <ellipse cx="90" cy="32" rx="20" ry="23" fill="rgba(180,130,100,0.55)" />

@@ -1,11 +1,11 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.liveshopping.rd"
+    namespace "com.livesell"
     compileSdk rootProject.ext.compileSdkVersion
 
     defaultConfig {
-        applicationId "com.liveshopping.rd"
+        applicationId "com.livesell"
         minSdk rootProject.ext.minSdkVersion
         targetSdk rootProject.ext.targetSdkVersion
         versionCode 1

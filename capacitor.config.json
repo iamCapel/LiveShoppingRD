@@ -1,6 +1,6 @@
 {
-  "appId": "com.liveshopping.rd",
-  "appName": "LiveShopping RD",
+  "appId": "com.livesell",
+  "appName": "LiveSell",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"
