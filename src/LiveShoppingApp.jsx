@@ -1381,38 +1381,7 @@ const LiveShoppingApp = () => {
       
       return (
         <div className="min-h-screen w-full bg-black pb-20 overflow-x-hidden relative">
-          {/* Fondo animado con efecto parallax */}
-          <div 
-            className="fixed inset-0 pointer-events-none z-0"
-            style={{
-              background: `radial-gradient(circle at ${50 + gyroX * 20}% ${50 + gyroY * 20}%, rgba(220, 38, 38, 0.15) 0%, transparent 50%), radial-gradient(circle at ${30 + gyroX * -15}% ${70 + gyroY * -15}%, rgba(236, 72, 153, 0.12) 0%, transparent 50%), radial-gradient(circle at ${70 + gyroX * 15}% ${30 + gyroY * 15}%, rgba(147, 51, 234, 0.1) 0%, transparent 50%)`,
-              transition: 'background 0.3s ease-out'
-            }}
-          />
-          
-          {/* Elementos decorativos con parallax - reducidos */}
-          <div 
-            className="fixed w-96 h-96 rounded-full blur-3xl opacity-5 pointer-events-none z-0"
-            style={{
-              background: 'linear-gradient(135deg, #ef4444, #ec4899)',
-              top: `${20 + gyroY * 10}%`,
-              left: `${10 + gyroX * 10}%`,
-              transform: `translate(${gyroX * 30}px, ${gyroY * 30}px)`,
-              transition: 'transform 0.3s ease-out'
-            }}
-          />
-          <div 
-            className="fixed w-80 h-80 rounded-full blur-3xl opacity-3 pointer-events-none z-0"
-            style={{
-              background: 'linear-gradient(135deg, #ec4899, #9333ea)',
-              bottom: `${10 + gyroY * -10}%`,
-              right: `${15 + gyroX * -10}%`,
-              transform: `translate(${gyroX * -20}px, ${gyroY * -20}px)`,
-              transition: 'transform 0.3s ease-out'
-            }}
-          />
-          
-          {/* Contenido principal con z-index superior */}
+          {/* Contenido principal */}
           <div className="relative z-10">
           {/* Notificación flotante de live urgente - visible durante 1 hora */}
           {urgentLive && !isLive && !isPreLive && (
