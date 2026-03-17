@@ -3,15 +3,49 @@ import Auth from './pages/Auth';
 import LiveStreamWindow from './pages/LiveStreamWindow';
 import livesellLogoHeader from './assets/livesell-logo-header.png';
 import BottomNav from './components/BottomNav';
+import AddedIcon from './components/AddedIcon';
 import { Camera, DollarSign, Gavel, Users, Bell, ShoppingCart, Video, Play, Pause, X, Search, UserPlus, UserCheck, Plus, PlusCircle, Home, User, Heart, Send, Clock, TrendingUp, Image } from 'lucide-react';
 import { App as CapacitorApp } from '@capacitor/app';
 
 const LiveShoppingApp = () => {
   // Estados principales
   const [currentUser, setCurrentUser] = useState(null);
+  const [authToken, setAuthToken] = useState(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [activeTab, setActiveTab] = useState('home'); // 'home', 'search', 'notifications', 'profile'
-  const [userType, setUserType] = useState(null);
+
+  const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+
+  // Persistencia de sesión en localStorage y validación con backend
+  useEffect(() => {
+    const stored = localStorage.getItem('liveShoppingAuth');
+    if (!stored) return;
+
+    try {
+      const { token } = JSON.parse(stored);
+      if (!token) return;
+
+      fetch(`${API_URL}/api/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(async res => {
+          if (!res.ok) throw new Error('Sesión inválida');
+          const data = await res.json();
+          setCurrentUser(data);
+          setAuthToken(token);
+          setIsRegistered(true);
+        })
+        .catch(() => {
+          localStorage.removeItem('liveShoppingAuth');
+          setCurrentUser(null);
+          setAuthToken(null);
+          setIsRegistered(false);
+        });
+    } catch (error) {
+      console.warn('Error al cargar usuario desde localStorage', error);
+      localStorage.removeItem('liveShoppingAuth');
+    }
+  }, [API_URL]);
   
   // Estados de transmisión
   const [isLive, setIsLive] = useState(false);
@@ -552,10 +586,15 @@ const LiveShoppingApp = () => {
   // ====================================================================
   
   // Función para manejar login/registro desde Auth
-  const handleAuth = (user) => {
-    setCurrentUser(user);
-    setUserType(user.type);
+  const handleAuth = (data) => {
+    setCurrentUser(data);
+    setAuthToken(data.token);
     setIsRegistered(true);
+    try {
+      localStorage.setItem('liveShoppingAuth', JSON.stringify(data));
+    } catch (error) {
+      console.warn('No se pudo persistir usuario en localStorage', error);
+    }
   };
   
   const formatCountdown = (seconds) => {
@@ -605,12 +644,12 @@ const LiveShoppingApp = () => {
     }));
   };
 
-  const registerUser = (username, name, type) => {
+  const registerUser = (username, name) => {
     const newUser = {
       id: Date.now(),
       username,
       name,
-      type,
+      type: 'buyer',
       followers: 0,
       following: 0,
       isFollowing: false,
@@ -618,12 +657,8 @@ const LiveShoppingApp = () => {
       stories: []
     };
     setCurrentUser(newUser);
-    setUserType(type);
     setIsRegistered(true);
-    
-    if (type === 'seller') {
-      setAllUsers(prev => [...prev, newUser]);
-    }
+    setAllUsers(prev => [...prev, newUser]);
   };
 
   const toggleFollow = (userId) => {
@@ -2165,7 +2200,7 @@ const LiveShoppingApp = () => {
   );
 
   // VISTA PRINCIPAL - TODOS LOS USUARIOS
-  if (userType === 'buyer' || userType === 'seller') {
+  if (isRegistered) {
 
     // Tab Home - Feed principal
     if (activeTab === 'home') {
@@ -2209,9 +2244,14 @@ const LiveShoppingApp = () => {
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h1 className="flex items-center">
-                  <img src={livesellLogoHeader} alt="LiveSell" className="h-8" />
+                  <img src={livesellLogoHeader} alt="LiveSell" className="h-6" />
                 </h1>
-                <Bell className="w-6 h-6 text-gray-300" />
+                <div className="relative">
+                  <AddedIcon className="w-6 h-6 text-gray-300" />
+                  {isLive && currentLivePost && interestedPosts.has(currentLivePost.id) && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 border border-white/30" />
+                  )}
+                </div>
               </div>
               
               {/* Stories */}
@@ -2360,20 +2400,7 @@ const LiveShoppingApp = () => {
                     <span className={`absolute inset-0 flex items-center justify-center gap-2 text-white text-base font-extrabold transition-all duration-250 ${
                       interestedPosts.has(post.id) ? 'opacity-0 scale-75' : 'opacity-100 scale-100'
                     }`}>
-                      <svg width="22" height="22" viewBox="0 0 100 110" fill="none" className="flex-shrink-0">
-                        <rect x="10" y="30" width="80" height="70" rx="4" stroke="white" strokeWidth="7" fill="none"/>
-                        <path d="M32 30 Q32 10 50 10 Q68 10 68 30" stroke="white" strokeWidth="7" fill="none" strokeLinecap="round"/>
-                        <path d="M10 68 Q18 60 28 63 Q36 65 40 72" stroke="white" strokeWidth="4.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M10 68 Q6 75 10 80" stroke="white" strokeWidth="4.5" fill="none" strokeLinecap="round"/>
-                        <path d="M28 63 Q30 55 35 57" stroke="white" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                        <path d="M33 62 Q35 54 40 56" stroke="white" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                        <path d="M38 63 Q40 56 45 58" stroke="white" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                        <path d="M90 68 Q82 60 72 63 Q64 65 60 72" stroke="white" strokeWidth="4.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M90 68 Q94 75 90 80" stroke="white" strokeWidth="4.5" fill="none" strokeLinecap="round"/>
-                        <path d="M72 63 Q70 55 65 57" stroke="white" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                        <path d="M67 62 Q65 54 60 56" stroke="white" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                        <path d="M62 63 Q60 56 55 58" stroke="white" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                      </svg>
+                      <AddedIcon className="flex-shrink-0 text-white" width={22} height={22} />
                       ¡Lo quiero!
                     </span>
 
@@ -2381,20 +2408,7 @@ const LiveShoppingApp = () => {
                     <span className={`absolute inset-0 flex items-center justify-center gap-2 text-white/70 text-sm font-bold tracking-wide transition-all duration-300 ${
                       interestedPosts.has(post.id) ? 'opacity-100 scale-100 delay-150' : 'opacity-0 scale-80'
                     }`}>
-                      <svg width="22" height="22" viewBox="0 0 100 110" fill="none" className="flex-shrink-0 icon-added">
-                        <rect x="10" y="30" width="80" height="70" rx="4" stroke="rgba(255,255,255,0.6)" strokeWidth="7" fill="none"/>
-                        <path d="M32 30 Q32 10 50 10 Q68 10 68 30" stroke="rgba(255,255,255,0.6)" strokeWidth="7" fill="none" strokeLinecap="round"/>
-                        <path d="M10 68 Q18 60 28 63 Q36 65 40 72" stroke="rgba(255,255,255,0.6)" strokeWidth="4.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M10 68 Q6 75 10 80" stroke="rgba(255,255,255,0.6)" strokeWidth="4.5" fill="none" strokeLinecap="round"/>
-                        <path d="M28 63 Q30 55 35 57" stroke="rgba(255,255,255,0.6)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                        <path d="M33 62 Q35 54 40 56" stroke="rgba(255,255,255,0.6)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                        <path d="M38 63 Q40 56 45 58" stroke="rgba(255,255,255,0.6)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                        <path d="M90 68 Q82 60 72 63 Q64 65 60 72" stroke="rgba(255,255,255,0.6)" strokeWidth="4.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M90 68 Q94 75 90 80" stroke="rgba(255,255,255,0.6)" strokeWidth="4.5" fill="none" strokeLinecap="round"/>
-                        <path d="M72 63 Q70 55 65 57" stroke="rgba(255,255,255,0.6)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                        <path d="M67 62 Q65 54 60 56" stroke="rgba(255,255,255,0.6)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                        <path d="M62 63 Q60 56 55 58" stroke="rgba(255,255,255,0.6)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                      </svg>
+                      <AddedIcon className="flex-shrink-0 text-white/70" width={22} height={22} />
                       AGREGADO
                     </span>
                   </button>
@@ -3118,83 +3132,86 @@ const LiveShoppingApp = () => {
             </div>
             
             {/* Sección de Suscripción */}
-            {userType === 'seller' && (
-              <div className="mt-4 space-y-3">
-                {isPremium ? (
-                  <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/50 rounded-2xl p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
-                        <span className="text-2xl">👑</span>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-yellow-400 font-black text-lg">Premium Activo</p>
-                        <p className="text-yellow-300 text-sm">Lives ilimitados sin restricciones</p>
-                      </div>
+            <div className="mt-4 space-y-3">
+              {isPremium ? (
+                <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/50 rounded-2xl p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">👑</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 text-center">
-                      <div className="bg-black/30 rounded-xl p-3">
-                        <p className="text-white text-2xl font-bold">∞</p>
-                        <p className="text-gray-300 text-xs">Lives</p>
-                      </div>
-                      <div className="bg-black/30 rounded-xl p-3">
-                        <p className="text-white text-2xl font-bold">∞</p>
-                        <p className="text-gray-300 text-xs">Horas</p>
-                      </div>
+                    <div className="flex-1">
+                      <p className="text-yellow-400 font-black text-lg">Premium Activo</p>
+                      <p className="text-yellow-300 text-sm">Lives ilimitados sin restricciones</p>
                     </div>
                   </div>
-                ) : (
-                  <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="text-white font-bold text-lg">Plan Gratuito</p>
-                        <p className="text-gray-400 text-sm">Límite de lives y duración</p>
-                      </div>
-                      <Video className="w-8 h-8 text-gray-500" />
+                  <div className="grid grid-cols-2 gap-3 text-center">
+                    <div className="bg-black/30 rounded-xl p-3">
+                      <p className="text-white text-2xl font-bold">∞</p>
+                      <p className="text-gray-300 text-xs">Lives</p>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="bg-black/30 rounded-xl p-3 text-center">
-                        <p className="text-white text-2xl font-bold">
-                          {FREE_LIVES_LIMIT - livesUsed}
-                        </p>
-                        <p className="text-gray-300 text-xs">Lives restantes</p>
-                      </div>
-                      <div className="bg-black/30 rounded-xl p-3 text-center">
-                        <p className="text-white text-2xl font-bold">1h</p>
-                        <p className="text-gray-300 text-xs">Por live</p>
-                      </div>
-                    </div>
-                    
-                    {livesUsed >= FREE_LIVES_LIMIT && (
-                      <div className="bg-red-500/20 border border-red-500/40 rounded-xl p-3 mb-3">
-                        <p className="text-red-400 text-sm font-semibold">
-                          ⚠️ Has agotado tus lives gratuitos
-                        </p>
-                      </div>
-                    )}
-                    
-                    <button
-                      onClick={() => setIsPremium(true)}
-                      className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-3 rounded-xl font-bold hover:from-yellow-600 hover:to-orange-600 transition-all shadow-lg flex items-center justify-center gap-2"
-                    >
-                      <span className="text-xl">👑</span>
-                      Obtener Premium
-                    </button>
-                    
-                    <div className="mt-3 space-y-1">
-                      <p className="text-gray-400 text-xs text-center">Beneficios Premium:</p>
-                      <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
-                        <span>✓ Lives ilimitados</span>
-                        <span>✓ Sin límite de tiempo</span>
-                      </div>
+                    <div className="bg-black/30 rounded-xl p-3">
+                      <p className="text-white text-2xl font-bold">∞</p>
+                      <p className="text-gray-300 text-xs">Horas</p>
                     </div>
                   </div>
-                )}
-              </div>
-            )}
+                </div>
+              ) : (
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-white font-bold text-lg">Plan Gratuito</p>
+                      <p className="text-gray-400 text-sm">Límite de lives y duración</p>
+                    </div>
+                    <Video className="w-8 h-8 text-gray-500" />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="bg-black/30 rounded-xl p-3 text-center">
+                      <p className="text-white text-2xl font-bold">
+                        {FREE_LIVES_LIMIT - livesUsed}
+                      </p>
+                      <p className="text-gray-300 text-xs">Lives restantes</p>
+                    </div>
+                    <div className="bg-black/30 rounded-xl p-3 text-center">
+                      <p className="text-white text-2xl font-bold">1h</p>
+                      <p className="text-gray-300 text-xs">Por live</p>
+                    </div>
+                  </div>
+                  
+                  {livesUsed >= FREE_LIVES_LIMIT && (
+                    <div className="bg-red-500/20 border border-red-500/40 rounded-xl p-3 mb-3">
+                      <p className="text-red-400 text-sm font-semibold">
+                        ⚠️ Has agotado tus lives gratuitos
+                      </p>
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={() => setIsPremium(true)}
+                    className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-3 rounded-xl font-bold hover:from-yellow-600 hover:to-orange-600 transition-all shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <span className="text-xl">👑</span>
+                    Obtener Premium
+                  </button>
+                  
+                  <div className="mt-3 space-y-1">
+                    <p className="text-gray-400 text-xs text-center">Beneficios Premium:</p>
+                    <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
+                      <span>✓ Lives ilimitados</span>
+                      <span>✓ Sin límite de tiempo</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
             
             <button
-              onClick={() => setIsRegistered(false)}
+              onClick={() => {
+                setIsRegistered(false);
+                setCurrentUser(null);
+                setAuthToken(null);
+                localStorage.removeItem('liveShoppingAuth');
+              }}
               className="w-full bg-white/10 backdrop-blur-sm border border-white/20 text-white py-3 rounded-xl font-medium hover:bg-white/15 transition-colors mt-4"
             >
               Cerrar Sesión

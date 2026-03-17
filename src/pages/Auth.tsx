@@ -5,7 +5,7 @@ import livesellLogo from '../assets/livesell-logo.png';
 import { FaGoogle, FaFacebookF, FaPhone } from 'react-icons/fa';
 
 interface AuthProps {
-  onAuth: (user: { email: string; name: string; username: string; type: string }) => void;
+  onAuth: (user: { email: string; name: string; username: string; token: string }) => void;
 }
 
 const Auth: React.FC<AuthProps> = ({ onAuth }) => {
@@ -14,13 +14,47 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
-  const [userType, setUserType] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+
+  // Si la URL trae token (después del callback OAuth), iniciar sesión automáticamente
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (!token) return;
+
+    // Guardar y limpiar URL
+    localStorage.setItem('liveShoppingAuth', JSON.stringify({ token }));
+    params.delete('token');
+    const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+    window.history.replaceState({}, '', newUrl);
+
+    // Solicitar datos del usuario al backend
+    fetch(`${API_URL}/api/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async res => {
+        if (!res.ok) throw new Error('Token inválido');
+        return res.json();
+      })
+      .then(data => {
+        onAuth({
+          email: data.email,
+          name: data.name,
+          username: data.username,
+          token,
+        });
+      })
+      .catch(() => {
+        localStorage.removeItem('liveShoppingAuth');
+      });
+  }, [API_URL, onAuth]);
 
   // Efecto 3D de movimiento del fondo con mouse y giroscopio
   useEffect(() => {
@@ -54,13 +88,13 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
     if (!email.match(/^\S+@\S+\.\S+$/)) return 'Correo inválido';
     if (!isLogin && name.trim().length < 2) return 'Nombre completo muy corto';
     if (!isLogin && username.trim().length < 3) return 'Nombre de usuario muy corto';
-    if (!isLogin && !userType) return 'Selecciona si vas a vender o comprar';
-    if (!isLogin && !phone.match(/^\d{10,15}$/)) return 'Teléfono inválido';
+    // El teléfono es opcional; si se ingresa, debe ser válido (10-15 dígitos).
+    if (!isLogin && phone && !phone.match(/^\d{10,15}$/)) return 'Teléfono inválido';
     if (password.length < 6) return 'Contraseña muy corta';
     return '';
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -69,20 +103,55 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
       setError(err);
       return;
     }
+
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSuccess(isLogin ? '¡Sesión iniciada!' : '¡Cuenta creada exitosamente!');
-      onAuth({ 
-        email, 
-        name: isLogin ? 'Usuario' : name,
-        username: isLogin ? email.split('@')[0] : username,
-        type: userType || 'buyer'
+
+    try {
+      const body = isLogin
+        ? { email, password }
+        : { email, password, username, name, type: 'buyer' };
+
+      const response = await fetch(`${API_URL}/api/${isLogin ? 'login' : 'register'}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       });
+
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch {
+        // Puede fallar si el servidor retorna un HTML/Texto en vez de JSON.
+      }
+
+      if (!response.ok) {
+        const message = data?.detail || data?.message || response.statusText || `Error ${response.status}`;
+        throw new Error(message);
+      }
+
+      setSuccess(isLogin ? '¡Sesión iniciada!' : '¡Cuenta creada exitosamente!');
+
+      // Guardar sesión en localStorage para persistencia
+      localStorage.setItem('liveShoppingAuth', JSON.stringify(data));
+
+      onAuth({
+        email: data.email,
+        name: data.name,
+        username: data.username,
+        type: data.type,
+        token: data.token,
+      });
+
       setEmail('');
       setPassword('');
       setName('');
-    }, 1200);
+      setUsername('');
+      setPhone('');
+    } catch (err: any) {
+      setError(err.message || 'Ocurrió un error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -115,13 +184,21 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
         </h2>
         {/* Botones de registro social */}
         <div className="flex justify-center gap-4 mb-4">
-          <button type="button" className="bg-white/10 rounded-full p-3 hover:bg-white/20 transition-all hover:scale-110">
+          <button
+            type="button"
+            onClick={() => (window.location.href = `${API_URL}/auth/google`)}
+            className="bg-white/10 rounded-full p-3 hover:bg-white/20 transition-all hover:scale-110"
+          >
             <FaGoogle className="w-5 h-5 text-white drop-shadow" />
           </button>
           <button type="button" className="bg-white/10 rounded-full p-3 hover:bg-white/20 transition-all hover:scale-110">
             <FaPhone className="w-5 h-5 text-white drop-shadow" />
           </button>
-          <button type="button" className="bg-white/10 rounded-full p-3 hover:bg-white/20 transition-all hover:scale-110">
+          <button
+            type="button"
+            onClick={() => (window.location.href = `${API_URL}/auth/facebook`)}
+            className="bg-white/10 rounded-full p-3 hover:bg-white/20 transition-all hover:scale-110"
+          >
             <FaFacebookF className="w-5 h-5 text-white drop-shadow" />
           </button>
         </div>
@@ -144,23 +221,12 @@ const Auth: React.FC<AuthProps> = ({ onAuth }) => {
                 className="w-full px-4 py-3 bg-white/10 rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
                 required
               />
-              <select
-                value={userType}
-                onChange={e => setUserType(e.target.value)}
-                className="w-full px-4 py-3 bg-white/10 rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
-                required
-              >
-                <option value="" className="bg-gray-800">¿Vas a vender o comprar?</option>
-                <option value="seller" className="bg-gray-800">Vender</option>
-                <option value="buyer" className="bg-gray-800">Comprar</option>
-              </select>
               <input
                 type="tel"
-                placeholder="Número de teléfono"
+                placeholder="Número de teléfono (opcional)"
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
                 className="w-full px-4 py-3 bg-white/10 rounded-lg text-white placeholder-white/60 focus:outline-none focus:bg-white/20 transition-all"
-                required
               />
             </>
           )}

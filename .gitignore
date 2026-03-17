@@ -22,3 +22,20 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.sqlite3
+*.db
+
+# Environment variables
+.env
+.env.*
+
+# Backend local database
+backend/data.db
+
+# Local build artifacts
+dist/
